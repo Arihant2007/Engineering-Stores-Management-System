@@ -115,6 +115,14 @@
       <div class="card-header-esms"><h5 class="mb-0">Approval Routing</h5></div>
       <div class="card-body p-4">
         <div class="small text-muted mb-3">Based on total amount:</div>
+        {% if not config.get('ENABLE_LEVEL_2_APPROVAL', False) %}
+        <div class="detail-item mb-2">
+          <div class="d-flex justify-content-between">
+            <span class="small">All Amounts</span>
+            <span class="badge bg-primary small">Level 1 only</span>
+          </div>
+        </div>
+        {% else %}
         <div class="detail-item mb-2">
           <div class="d-flex justify-content-between">
             <span class="small">Amount up to Rs. 3,000</span>
@@ -127,6 +135,7 @@
             <span class="badge bg-warning small">Level 1 + Level 2</span>
           </div>
         </div>
+        {% endif %}
         <div class="mt-3 p-3 bg-light rounded" id="approvalInfo">
           <div class="small text-muted">Select a material and enter quantity to see routing.</div>
         </div>
@@ -206,8 +215,9 @@ function updateAmount() {
   }
 
   // Update approval routing
+  const isLevel2Enabled = {{ 'true' if config.get('ENABLE_LEVEL_2_APPROVAL', False) else 'false' }};
   if (amount > 0) {
-    if (amount <= 3000) {
+    if (!isLevel2Enabled || amount <= 3000) {
       approvalInfo.innerHTML = '<div class="small"><strong>Routing:</strong> Level 1 Approval only</div><div class="small text-muted">Amount: Rs. ' + amount.toFixed(2) + '</div>';
     } else {
       approvalInfo.innerHTML = '<div class="small"><strong>Routing:</strong> Level 1 + Level 2 Approval required</div><div class="small text-muted">Amount: Rs. ' + amount.toFixed(2) + '</div>';

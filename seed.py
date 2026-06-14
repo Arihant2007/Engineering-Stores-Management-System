@@ -95,8 +95,10 @@ def seed():
         ]
 
         created_count = 0
+        updated_count = 0
         for ud in users_data:
-            if not User.query.filter_by(username=ud['username']).first():
+            user = User.query.filter_by(username=ud['username']).first()
+            if not user:
                 user = User(
                     username=ud['username'],
                     email=ud['email'],
@@ -108,8 +110,14 @@ def seed():
                 user.set_password(ud['password'])
                 db.session.add(user)
                 created_count += 1
+            else:
+                user.email = ud['email']
+                user.full_name = ud['full_name']
+                user.department = ud['department']
+                updated_count += 1
+
         db.session.commit()
-        print(f"  {created_count} users created.")
+        print(f"  {created_count} users created, {updated_count} users updated.")
 
         # ─── Sample Inventory Snapshot ───────────────────────────────────
         if InventorySnapshot.query.count() == 0:

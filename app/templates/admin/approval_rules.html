@@ -10,20 +10,17 @@
   </div>
   <div class="page-header-actions">
     <a href="{{ url_for('admin.create_approval_rule') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Add Rule</a>
-  </div>
+{% if not config.get('ENABLE_LEVEL_2_APPROVAL', False) %}
+<div class="alert alert-info mb-4">
+  <i class="bi bi-info-circle me-2"></i>
+  Default rule: All requests require Level 1 approval only. The single-level workflow is currently active.
 </div>
-
-{% if not config.get('ENABLE_LEVEL_2_APPROVAL', True) %}
-<div class="alert alert-warning mb-4 shadow-sm">
-  <i class="bi bi-exclamation-triangle-fill me-2"></i>
-  <strong>Multi-level approvals are currently disabled.</strong> The configuration flag <code>ENABLE_LEVEL_2_APPROVAL</code> is set to <code>False</code>. All requests will be routed via the single-level workflow, overriding the rules below.
-</div>
-{% endif %}
-
+{% else %}
 <div class="alert alert-info mb-4">
   <i class="bi bi-info-circle me-2"></i>
   Default rule: Requests up to Rs. 3,000 require Level 1 approval only. Requests above Rs. 3,000 require both Level 1 and Level 2 approval.
 </div>
+{% endif %}
 
 <div class="table-container">
   <div class="table-responsive">
