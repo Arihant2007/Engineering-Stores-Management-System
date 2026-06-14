@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs - ESMS{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Audit Logs</h1>
+    <p class="page-header-subtitle">Complete system activity trail</p>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>#</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP Address</th><th>Timestamp</th></tr></thead>
+      <tbody>
+        {% for log in pagination.items %}
+        <tr>
+          <td class="text-muted">{{ log.id }}</td>
+          <td>{{ log.user.full_name if log.user else 'System' }}</td>
+          <td><code class="text-primary small">{{ log.action }}</code></td>
+          <td class="text-muted">{{ log.entity_type }}</td>
+          <td class="text-muted" style="max-width:350px;word-break:break-word;">{{ log.details or '-' }}</td>
+          <td class="text-muted">{{ log.ip_address }}</td>
+          <td class="text-muted">{{ log.created_at | datetime }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-5">No audit logs found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}">Previous</a></li>{% endif %}
+      {% for p in pagination.iter_pages() %}{% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}">Next</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

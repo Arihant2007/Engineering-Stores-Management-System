@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}My Requests - ESMS{% endblock %}
+{% block page_title %}All My Requests{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">All My Requisitions</h1>
+    <p class="page-header-subtitle">{{ pagination.total }} total requests</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('employee.create_request') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> New Requisition</a>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-toolbar">
+    <form method="GET" class="search-bar">
+      <div class="search-input-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ search }}">
+      </div>
+      <select name="status" class="form-select" style="width:auto;">
+        <option value="">All Statuses</option>
+        <option value="Pending Approval" {{ 'selected' if status_filter == 'Pending Approval' }}>Pending</option>
+        <option value="Approved" {{ 'selected' if status_filter == 'Approved' }}>Approved</option>
+        <option value="Rejected" {{ 'selected' if status_filter == 'Rejected' }}>Rejected</option>
+        <option value="Issued" {{ 'selected' if status_filter == 'Issued' }}>Issued</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      {% if search or status_filter %}<a href="{{ url_for('employee.my_requests') }}" class="btn btn-outline-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Request No.</th><th>Material</th><th>Qty</th><th>Amount</th><th>Cost Center</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for req in pagination.items %}
+        <tr>
+          <td class="fw-600"><code>{{ req.request_number }}</code></td>
+          <td title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description | length > 40 %}...{% endif %}</td>
+          <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
+          <td class="text-currency">{{ req.amount | currency }}</td>
+          <td>{{ req.cost_center or '-' }}</td>
+          <td><span class="status-badge status-{{ req.status.lower().replace(' ', '-') }}">{{ req.status }}</span></td>
+          <td class="text-muted">{{ req.created_at | datetime }}</td>
+          <td><a href="{{ url_for('employee.view_request', request_id=req.id) }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-5">No requests found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <span class="text-muted small">{{ pagination.total }} requests</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}&status={{ status_filter }}">Previous</a></li>{% endif %}
+      {% for p in pagination.iter_pages() %}{% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="?page={{ p }}&search={{ search }}&status={{ status_filter }}">{{ p }}</a></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}&status={{ status_filter }}">Next</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

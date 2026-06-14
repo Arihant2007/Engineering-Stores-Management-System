@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Pending Approvals - ESMS{% endblock %}
+{% block page_title %}Pending Approvals{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Pending Approvals</h1>
+    <p class="page-header-subtitle">{{ pagination.total }} requests awaiting your approval</p>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-toolbar">
+    <form method="GET" class="search-bar">
+      <div class="search-input-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="form-control" placeholder="Search request, employee, material..." value="{{ search }}">
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+      {% if search %}<a href="{{ url_for('approver.pending_requests') }}" class="btn btn-outline-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Qty</th><th>Amount</th><th>Level</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for req in pagination.items %}
+        <tr>
+          <td class="fw-600"><code>{{ req.request_number }}</code></td>
+          <td>{{ req.requester_name }}</td>
+          <td>{{ req.department }}</td>
+          <td title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description|length > 40 %}...{% endif %}</td>
+          <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
+          <td class="text-currency fw-600">{{ req.amount | currency }}</td>
+          <td><span class="badge bg-secondary">L{{ req.current_approval_level + 1 }}</span></td>
+          <td class="text-muted">{{ req.created_at | datetime }}</td>
+          <td>
+            <a href="{{ url_for('approver.view_request', request_id=req.id) }}" class="btn btn-sm btn-primary">Review</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-5">No pending requests.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}">Previous</a></li>{% endif %}
+      {% for p in pagination.iter_pages() %}{% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="?page={{ p }}&search={{ search }}">{{ p }}</a></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}">Next</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

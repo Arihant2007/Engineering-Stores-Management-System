@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Approver Dashboard - ESMS{% endblock %}
+{% block page_title %}Approval Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Approval Dashboard</h1>
+    <p class="page-header-subtitle">{{ current_user.role_display }} - Manage pending approvals</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('approver.pending_requests') }}" class="btn btn-primary">
+      <i class="bi bi-list-check me-1"></i> View All Pending
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <div class="stat-card warning">
+      <div class="stat-icon warning"><i class="bi bi-hourglass-split"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ pending_count }}</div><div class="stat-label">Awaiting My Action</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card success">
+      <div class="stat-icon success"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ approved_count }}</div><div class="stat-label">Approved by Me</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4">
+    <div class="stat-card danger">
+      <div class="stat-icon danger"><i class="bi bi-x-circle"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ rejected_count }}</div><div class="stat-label">Rejected by Me</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="analytics-card">
+  <div class="analytics-card-header">Pending Approvals (Latest)</div>
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Quantity</th><th>Amount</th><th>Approval Level</th><th>Created</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for req in pending_requests %}
+        <tr>
+          <td class="fw-600"><code>{{ req.request_number }}</code></td>
+          <td>{{ req.requester_name }}</td>
+          <td>{{ req.department }}</td>
+          <td title="{{ req.material_description }}">{{ req.material_description[:35] }}{% if req.material_description|length > 35 %}...{% endif %}</td>
+          <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
+          <td class="text-currency fw-600">{{ req.amount | currency }}</td>
+          <td>
+            <span class="badge {{ 'bg-primary' if req.required_approval_levels == 2 else 'bg-secondary' }}">
+              L{{ req.current_approval_level + 1 }} of {{ req.required_approval_levels }}
+            </span>
+          </td>
+          <td class="text-muted">{{ req.created_at | datetime }}</td>
+          <td><a href="{{ url_for('approver.view_request', request_id=req.id) }}" class="btn btn-sm btn-primary">Review</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center py-5">
+          <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-check-circle"></i></div>
+            <div class="empty-state-title">All Caught Up</div>
+            <div class="empty-state-subtitle">No requests pending your approval.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

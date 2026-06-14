@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Approval History - ESMS{% endblock %}
+{% block page_title %}My Approval History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">My Approval History</h1>
+    <p class="page-header-subtitle">All approvals and rejections made by you</p>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Request No.</th><th>Material</th><th>Amount</th><th>Level</th><th>Decision</th><th>Remarks</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for appr in pagination.items %}
+        <tr>
+          <td class="fw-600"><code>{{ appr.request.request_number if appr.request else '-' }}</code></td>
+          <td>{{ appr.request.material_description[:45] if appr.request else '-' }}{% if appr.request and appr.request.material_description|length > 45 %}...{% endif %}</td>
+          <td class="text-currency">{{ appr.request.amount | currency if appr.request else '-' }}</td>
+          <td><span class="badge bg-secondary">Level {{ appr.approval_level }}</span></td>
+          <td>
+            {% if appr.action == 'Approved' %}
+            <span class="status-badge status-approved">Approved</span>
+            {% else %}
+            <span class="status-badge status-rejected">Rejected</span>
+            {% endif %}
+          </td>
+          <td class="text-muted">{{ appr.remarks or '-' }}</td>
+          <td class="text-muted">{{ appr.actioned_at | datetime }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-5">No approval history yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}">Previous</a></li>{% endif %}
+      {% for p in pagination.iter_pages() %}{% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}">Next</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

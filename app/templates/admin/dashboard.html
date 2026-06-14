@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - ESMS{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Administration Panel</h1>
+    <p class="page-header-subtitle">System management and configuration</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary">
+      <i class="bi bi-person-plus me-1"></i> Add User
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card primary">
+      <div class="stat-icon primary"><i class="bi bi-people"></i></div>
+      <div class="stat-content">
+        <div class="stat-value">{{ total_users }}</div>
+        <div class="stat-label">Total Users</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card success">
+      <div class="stat-icon success"><i class="bi bi-person-check"></i></div>
+      <div class="stat-content">
+        <div class="stat-value">{{ active_users }}</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+    </div>
+  </div>
+  {% for role, count in users_by_role %}
+  <div class="col-6 col-md-3">
+    <div class="stat-card warning">
+      <div class="stat-icon warning"><i class="bi bi-person-badge"></i></div>
+      <div class="stat-content">
+        <div class="stat-value">{{ count }}</div>
+        <div class="stat-label">{{ role | replace('_', ' ') | title }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <div class="col-12">
+    <div class="analytics-card">
+      <div class="analytics-card-header">Recent Audit Activity</div>
+      <div class="table-responsive">
+        <table class="table table-esms mb-0">
+          <thead><tr><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th><th>Time</th></tr></thead>
+          <tbody>
+            {% for log in recent_logs %}
+            <tr>
+              <td>{{ log.user.full_name if log.user else 'System' }}</td>
+              <td><code class="text-primary">{{ log.action }}</code></td>
+              <td>{{ log.entity_type }}</td>
+              <td class="text-muted" style="max-width:300px;">{{ (log.details or '')[:80] }}</td>
+              <td class="text-muted">{{ log.ip_address }}</td>
+              <td class="text-muted">{{ log.created_at | datetime }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">No audit logs yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

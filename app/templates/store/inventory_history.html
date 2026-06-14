@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Inventory History - ESMS{% endblock %}
+{% block page_title %}Inventory History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Inventory History</h1>
+    <p class="page-header-subtitle">All uploaded inventory snapshots</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('store.upload_inventory') }}" class="btn btn-primary"><i class="bi bi-cloud-upload me-1"></i> Upload New</a>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Date</th><th>Filename</th><th>Total Items</th><th>Valid Items</th><th>Duplicates</th><th>Uploaded By</th><th>Status</th><th>Validation Summary</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for snap in pagination.items %}
+        <tr>
+          <td class="fw-600">{{ snap.snapshot_date | date }}</td>
+          <td class="text-muted small">{{ snap.filename }}</td>
+          <td>{{ snap.total_items }}</td>
+          <td>{{ snap.valid_items }}</td>
+          <td>{{ snap.duplicate_items }}</td>
+          <td>{{ snap.uploader.full_name if snap.uploader else '-' }}</td>
+          <td>{% if snap.is_active %}<span class="status-badge status-approved">Active</span>{% else %}<span class="status-badge status-pending">Archived</span>{% endif %}</td>
+          <td class="text-muted small">{{ snap.validation_summary or '-' }}</td>
+          <td><a href="{{ url_for('store.view_inventory', snapshot_id=snap.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-center text-muted py-5">No inventory snapshots uploaded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}">Previous</a></li>{% endif %}
+      {% for p in pagination.iter_pages() %}{% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}">Next</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

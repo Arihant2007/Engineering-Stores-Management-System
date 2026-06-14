@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% block title %}Reports - ESMS{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block head %}
+<style>
+  /* ── Report-specific styles (all using global CSS vars) ── */
+  .report-date-bar {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--r-lg);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    box-shadow: var(--sh-card);
+    animation: fadeUp 0.3s ease both;
+  }
+  .report-date-bar label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--on-light-sub);
+    margin: 0;
+    white-space: nowrap;
+  }
+  .report-date-bar .form-control {
+    width: 180px;
+    font-size: 14px;
+  }
+  .report-date-display {
+    flex: 1;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--on-light);
+    text-align: right;
+    letter-spacing: -0.4px;
+  }
+  .report-date-display span {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--on-light-muted);
+    display: block;
+    letter-spacing: 0;
+  }
+
+  /* Metric strip */
+  .metric-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 992px) { .metric-strip { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 576px) { .metric-strip { grid-template-columns: repeat(2, 1fr); } }
+
+  .metric-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--r-lg);
+    padding: 18px 16px 14px;
+    box-shadow: var(--sh-card);
+    position: relative;
+    overflow: hidden;
+    transition: var(--tr);
+    animation: fadeUp 0.35s ease both;
+  }
+  .metric-tile:hover {
+    box-shadow: var(--sh-card-hover);
+    transform: translateY(-3px);
+    border-color: rgba(79,70,229,0.15);
+  }
+  .metric-tile::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .metric-tile.c-total::after    { background: linear-gradient(90deg, var(--accent), rgba(79,70,229,0.2)); }
+  .metric-tile.c-pending::after  { background: linear-gradient(90deg, var(--color-pending), rgba(245,158,11,0.2)); }
+  .metric-tile.c-approved::after { background: linear-gradient(90deg, var(--color-approved), rgba(16,185,129,0.2)); }
+  .metric-tile.c-rejected::after { background: linear-gradient(90deg, var(--color-rejected), rgba(239,68,68,0.2)); }
+  .metric-tile.c-issued::after   { background: linear-gradient(90deg, var(--color-issued), rgba(139,92,246,0.2)); }
+  .metric-tile.c-value::after    { background: linear-gradient(90deg, var(--accent-blue), rgba(14,165,233,0.2)); }
+
+  .metric-tile-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+  .metric-tile.c-total .metric-tile-icon    { background: rgba(79,70,229,0.1);   color: var(--accent); }
+  .metric-tile.c-pending .metric-tile-icon  { background: rgba(245,158,11,0.1);  color: var(--color-pending); }
+  .metric-tile.c-approved .metric-tile-icon { background: rgba(16,185,129,0.1);  color: var(--color-approved); }
+  .metric-tile.c-rejected .metric-tile-icon { background: rgba(239,68,68,0.1);   color: var(--color-rejected); }
+  .metric-tile.c-issued .metric-tile-icon   { background: rgba(139,92,246,0.1);  color: var(--color-issued); }
+  .metric-tile.c-value .metric-tile-icon    { background: rgba(14,165,233,0.1);  color: var(--accent-blue); }
+
+  .metric-tile-value {
+    font-size: 28px; font-weight: 800;
+    color: var(--on-light); line-height: 1; margin-bottom: 4px;
+    letter-spacing: -0.6px;
+  }
+  .metric-tile-value.sm { font-size: 19px; margin-top: 4px; }
+  .metric-tile-label {
+    font-size: 10.5px; font-weight: 700;
+    color: var(--on-light-muted);
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+
+  /* Animation stagger for metric tiles */
+  .metric-tile:nth-child(1) { animation-delay: 0.05s; }
+  .metric-tile:nth-child(2) { animation-delay: 0.10s; }
+  .metric-tile:nth-child(3) { animation-delay: 0.15s; }
+  .metric-tile:nth-child(4) { animation-delay: 0.20s; }
+  .metric-tile:nth-child(5) { animation-delay: 0.25s; }
+  .metric-tile:nth-child(6) { animation-delay: 0.30s; }
+
+  /* Section layout */
+  .report-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) { .report-grid { grid-template-columns: 1fr; } }
+
+  /* Panel card */
+  .report-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--sh-card);
+    overflow: hidden;
+    margin-bottom: 20px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .report-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--card-border);
+    background: var(--card-bg-2);
+  }
+  .report-panel-title {
+    font-size: 13.5px; font-weight: 700;
+    color: var(--on-light); margin: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .report-panel-title i { color: var(--accent); }
+  .report-panel-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Issued items table */
+  .issued-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .issued-table thead th {
+    background: var(--card-bg-2);
+    color: var(--on-light-muted);
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+  }
+  .issued-table tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--on-light-sub);
+    vertical-align: middle;
+  }
+  .issued-table tbody tr:last-child td { border-bottom: none; }
+  .issued-table tbody tr:hover { background: rgba(79,70,229,0.025); }
+  .issued-table .col-code { font-family: monospace; font-size: 12px; color: var(--accent); font-weight: 600; }
+  .issued-table .col-qty  { font-weight: 700; color: var(--on-light); }
+  .issued-table .col-amt  { font-weight: 700; color: var(--color-issued); font-variant-numeric: tabular-nums; }
+  .issued-table .col-dept { font-size: 12px; }
+  .issued-table .col-name { font-weight: 600; color: var(--on-light); }
+
+  /* Status chips */
+  .chip {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .chip-issued   { background: rgba(139,92,246,0.1);  color: #5B21B6; }
+  .chip-approved { background: rgba(16,185,129,0.1);  color: #065F46; }
+  .chip-rejected { background: rgba(239,68,68,0.1);   color: #991B1B; }
+  .chip-pending  { background: rgba(245,158,11,0.1);  color: #92400E; }
+
+  /* Download card */
+  .download-card {
+    background: linear-gradient(135deg, var(--accent) 0%, #818CF8 100%);
+    border-radius: var(--r-lg);
+    padding: 24px;
+    color: white;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(79,70,229,0.25);
+    animation: fadeUp 0.3s ease both;
+  }
+  .download-card-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.3px; }
+  .download-card-sub { font-size: 12px; opacity: 0.75; margin-bottom: 20px; }
+  .download-card .btn-download {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: white; color: var(--accent);
+    border: none; border-radius: var(--r-md);
+    padding: 11px 20px;
+    font-size: 14px; font-weight: 700;
+    text-decoration: none;
+    transition: var(--tr);
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  .download-card .btn-download:hover {
+    background: rgba(255,255,255,0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  .download-card .sheet-list {
+    margin-top: 16px;
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .sheet-tag {
+    background: rgba(255,255,255,0.18);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10.5px; font-weight: 500;
+  }
+
+  /* Recent downloads */
+  .log-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-row-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: rgba(16,185,129,0.1); color: var(--color-approved);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+  .log-row-date { font-size: 13px; font-weight: 600; color: var(--on-light); }
+  .log-row-by   { font-size: 11.5px; color: var(--on-light-muted); }
+  .log-row-time { font-size: 11.5px; color: var(--on-light-muted); margin-left: auto; white-space: nowrap; }
+
+  .no-data-row {
+    text-align: center; padding: 40px 20px;
+    color: var(--on-light-muted); font-size: 13.5px;
+  }
+  .no-data-row i { font-size: 32px; display: block; margin-bottom: 10px; opacity: 0.3; }
+
+  /* Value summary bar */
+  .value-progress-track {
+    background: var(--card-bg-3);
+    border-radius: 6px; height: 8px; overflow: hidden; margin-bottom: 6px;
+  }
+  .value-progress-fill { height: 100%; border-radius: 6px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ── -->
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Reports</h1>
+    <p class="page-header-subtitle">Issuance records, analytics and Excel exports</p>
+  </div>
+</div>
+
+<!-- ── Date Bar ── -->
+<div class="report-date-bar">
+  <label><i class="bi bi-calendar3 me-2"></i>Report Date</label>
+  <form method="GET" class="d-flex gap-2 align-items-center mb-0">
+    <input type="date" class="form-control" name="date"
+           value="{{ report_date }}" max="{{ report_date.strftime('%Y-%m-%d') }}">
+    <button type="submit" class="btn btn-primary px-4">Load</button>
+  </form>
+  <div class="report-date-display">
+    {{ report_date.strftime('%d %B %Y') }}
+    <span>Viewing data for this date</span>
+  </div>
+</div>
+
+<!-- ── Metric Strip ── -->
+<div class="metric-strip">
+  <div class="metric-tile c-total">
+    <div class="metric-tile-icon"><i class="bi bi-file-earmark-text"></i></div>
+    <div class="metric-tile-value">{{ stats.total }}</div>
+    <div class="metric-tile-label">Total Requests</div>
+  </div>
+  <div class="metric-tile c-pending">
+    <div class="metric-tile-icon"><i class="bi bi-hourglass-split"></i></div>
+    <div class="metric-tile-value">{{ stats.pending }}</div>
+    <div class="metric-tile-label">Pending</div>
+  </div>
+  <div class="metric-tile c-approved">
+    <div class="metric-tile-icon"><i class="bi bi-check-circle"></i></div>
+    <div class="metric-tile-value">{{ stats.approved }}</div>
+    <div class="metric-tile-label">Approved</div>
+  </div>
+  <div class="metric-tile c-rejected">
+    <div class="metric-tile-icon"><i class="bi bi-x-circle"></i></div>
+    <div class="metric-tile-value">{{ stats.rejected }}</div>
+    <div class="metric-tile-label">Rejected</div>
+  </div>
+  <div class="metric-tile c-issued">
+    <div class="metric-tile-icon"><i class="bi bi-box-arrow-right"></i></div>
+    <div class="metric-tile-value">{{ stats.issued }}</div>
+    <div class="metric-tile-label">Issued</div>
+  </div>
+  <div class="metric-tile c-value">
+    <div class="metric-tile-icon"><i class="bi bi-currency-rupee"></i></div>
+    <div class="metric-tile-value sm">{{ stats.issued_value | currency }}</div>
+    <div class="metric-tile-label">Value Issued</div>
+  </div>
+</div>
+
+<!-- ── Main Grid ── -->
+<div class="report-grid">
+
+  <!-- LEFT: Tables -->
+  <div>
+
+    <!-- Issued Materials Table -->
+    <div class="report-panel">
+      <div class="report-panel-header">
+        <h2 class="report-panel-title">
+          <i class="bi bi-box-arrow-right"></i>
+          Items Issued
+        </h2>
+        <span class="report-panel-badge">{{ issued_requests | length }}</span>
+      </div>
+      {% if issued_requests %}
+      <div class="table-responsive">
+        <table class="issued-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Material</th>
+              <th>Code</th>
+              <th>UOM</th>
+              <th>Qty</th>
+              <th>Unit Rate</th>
+              <th>Total Amount</th>
+              <th>Requester</th>
+              <th>Department</th>
+              <th>Issued By</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in issued_requests %}
+            <tr>
+              <td style="font-size:12px; color:var(--on-light-muted);">{{ loop.index }}</td>
+              <td>
+                <div class="col-name">{{ req.material_description[:45] }}{% if req.material_description|length > 45 %}…{% endif %}</div>
+              </td>
+              <td class="col-code">{{ req.material_code }}</td>
+              <td style="color:var(--on-light-muted);">{{ req.uom }}</td>
+              <td class="col-qty">{{ req.quantity_required | float | int }}</td>
+              <td style="color:var(--on-light-muted); font-variant-numeric:tabular-nums;">{{ req.unit_rate | currency }}</td>
+              <td class="col-amt">{{ req.amount | currency }}</td>
+              <td style="color:var(--on-light-sub);">{{ req.requester_name }}</td>
+              <td class="col-dept" style="color:var(--on-light-muted);">{{ req.department or '-' }}</td>
+              <td style="font-size:12px; color:var(--on-light-muted);">
+                {% if req.issued_material %}
+                  {{ req.issued_material.issuer.full_name if req.issued_material.issuer else '-' }}
+                {% else %}-{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- Total row -->
+      <div style="padding: 12px 20px; border-top: 1px solid var(--card-border); background: var(--card-bg-2); display: flex; justify-content: flex-end; gap: 32px;">
+        <div style="font-size:13px; color:var(--on-light-muted);">
+          <span class="fw-600" style="color:var(--on-light);">{{ issued_requests | length }}</span> items issued
+        </div>
+        <div style="font-size:13px; color:var(--color-issued); font-weight:700;">
+          Total: {{ stats.issued_value | currency }}
+        </div>
+      </div>
+      {% else %}
+      <div class="no-data-row">
+        <i class="bi bi-box-seam"></i>
+        No items were issued on {{ report_date.strftime('%d %B %Y') }}.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- All Requests Table -->
+    <div class="report-panel">
+      <div class="report-panel-header">
+        <h2 class="report-panel-title">
+          <i class="bi bi-list-ul"></i>
+          All Requests
+        </h2>
+        <span class="report-panel-badge">{{ stats.total }}</span>
+      </div>
+      {% if all_requests %}
+      <div class="table-responsive">
+        <table class="issued-table">
+          <thead>
+            <tr>
+              <th>Request No.</th>
+              <th>Material</th>
+              <th>Requester</th>
+              <th>Department</th>
+              <th>Qty</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in all_requests %}
+            <tr>
+              <td><code style="font-size:12px;">{{ req.request_number }}</code></td>
+              <td>
+                <div class="col-name">{{ req.material_description[:40] }}{% if req.material_description|length > 40 %}…{% endif %}</div>
+                <div style="font-size:11px; color:var(--on-light-muted);">{{ req.material_code }}</div>
+              </td>
+              <td style="color:var(--on-light-sub);">{{ req.requester_name }}</td>
+              <td class="col-dept" style="color:var(--on-light-muted);">{{ req.department or '-' }}</td>
+              <td class="col-qty">{{ req.quantity_required | float | int }} {{ req.uom }}</td>
+              <td class="col-amt">{{ req.amount | currency }}</td>
+              <td>
+                {% if req.status == 'Issued' %}
+                  <span class="chip chip-issued">Issued</span>
+                {% elif req.status == 'Approved' %}
+                  <span class="chip chip-approved">Approved</span>
+                {% elif req.status == 'Rejected' %}
+                  <span class="chip chip-rejected">Rejected</span>
+                {% else %}
+                  <span class="chip chip-pending">Pending</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if stats.total > 20 %}
+      <div style="padding: 10px 20px; border-top: 1px solid var(--card-border); background: var(--card-bg-2);">
+        <small style="color:var(--on-light-muted);">Showing 20 of {{ stats.total }} requests. Download Excel for full data.</small>
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="no-data-row">
+        <i class="bi bi-inbox"></i>
+        No requests on {{ report_date.strftime('%d %B %Y') }}.
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Sidebar -->
+  <div>
+
+    <!-- Download Card -->
+    <div class="download-card">
+      <div class="download-card-title">Export Full Report</div>
+      <div class="download-card-sub">{{ report_date.strftime('%d %B %Y') }} — Excel workbook, 12 sheets</div>
+      <a href="{{ url_for('reports.download_report', date=report_date) }}" class="btn-download">
+        <i class="bi bi-file-earmark-excel" style="font-size:18px;"></i>
+        Download Excel
+      </a>
+      <div class="sheet-list">
+        <span class="sheet-tag">Executive Summary</span>
+        <span class="sheet-tag">All Requests</span>
+        <span class="sheet-tag">Approved</span>
+        <span class="sheet-tag">Rejected</span>
+        <span class="sheet-tag">Pending</span>
+        <span class="sheet-tag">Issued Materials</span>
+        <span class="sheet-tag">Material Consumption</span>
+        <span class="sheet-tag">Dept Summary</span>
+        <span class="sheet-tag">Cost Centre</span>
+        <span class="sheet-tag">GL Codes</span>
+        <span class="sheet-tag">Approval Trail</span>
+        <span class="sheet-tag">Inventory</span>
+      </div>
+    </div>
+
+    <!-- Value Summary -->
+    <div class="report-panel" style="margin-bottom:20px;">
+      <div class="report-panel-header">
+        <h2 class="report-panel-title"><i class="bi bi-bar-chart"></i> Value Summary</h2>
+      </div>
+      <div style="padding: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="font-size:13px; color:var(--on-light-muted); font-weight:500;">Total Requested</div>
+          <div style="font-size:15px; font-weight:800; color:var(--on-light);">{{ stats.total_value | currency }}</div>
+        </div>
+        {% if stats.total_value > 0 %}
+        <div class="value-progress-track">
+          <div class="value-progress-fill" style="background: var(--accent); width:100%;"></div>
+        </div>
+        {% endif %}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; margin-top:18px;">
+          <div style="font-size:13px; color:var(--on-light-muted); font-weight:500;">Total Issued</div>
+          <div style="font-size:15px; font-weight:800; color:var(--color-issued);">{{ stats.issued_value | currency }}</div>
+        </div>
+        {% if stats.total_value > 0 %}
+        {% set pct = ((stats.issued_value / stats.total_value) * 100) | round(1) %}
+        <div class="value-progress-track">
+          <div class="value-progress-fill" style="background: var(--color-issued); width:{{ pct }}%;"></div>
+        </div>
+        <div style="font-size:11.5px; color:var(--on-light-muted); text-align:right; margin-top:4px;">{{ pct }}% fulfilment rate</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Recent Downloads -->
+    <div class="report-panel" style="margin-top:20px;">
+      <div class="report-panel-header">
+        <h2 class="report-panel-title"><i class="bi bi-clock-history"></i> Recent Downloads</h2>
+      </div>
+      {% for rlog in recent_reports %}
+      <div class="log-row">
+        <div class="log-row-icon"><i class="bi bi-file-earmark-check"></i></div>
+        <div>
+          <div class="log-row-date">{{ rlog.report_date | date if rlog.report_date else '-' }}</div>
+          <div class="log-row-by">{{ rlog.generator.full_name if rlog.generator else 'System' }}</div>
+        </div>
+        <div class="log-row-time">{{ rlog.created_at | datetime }}</div>
+      </div>
+      {% else %}
+      <div class="no-data-row" style="padding: 28px 16px;">
+        <i class="bi bi-download" style="font-size:24px;"></i>
+        No downloads yet.
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

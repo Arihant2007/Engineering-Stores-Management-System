@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Store Dashboard - ESMS{% endblock %}
+{% block page_title %}Store Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Store Manager Dashboard</h1>
+    <p class="page-header-subtitle">{{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('store.upload_inventory') }}" class="btn btn-primary">
+      <i class="bi bi-cloud-upload me-1"></i> Upload Inventory
+    </a>
+    <a href="{{ url_for('reports.download_report') }}" class="btn btn-esms-dark">
+      <i class="bi bi-file-earmark-excel me-1"></i> Download Report
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card primary">
+      <div class="stat-icon primary"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ total_requests }}</div><div class="stat-label">Total Requests</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card success">
+      <div class="stat-icon success"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ approved_requests }}</div><div class="stat-label">Approved</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card warning">
+      <div class="stat-icon warning"><i class="bi bi-hourglass-split"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ pending_requests }}</div><div class="stat-label">Pending</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card purple">
+      <div class="stat-icon purple"><i class="bi bi-box-arrow-right"></i></div>
+      <div class="stat-content"><div class="stat-value">{{ issued_requests }}</div><div class="stat-label">Issued</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    {% if active_snapshot %}
+    <div class="snapshot-active-card">
+      <div class="snapshot-card-label">Active Inventory Snapshot</div>
+      <div class="snapshot-card-value">{{ active_snapshot.snapshot_date | date }}</div>
+      <div class="snapshot-card-meta mt-2">{{ active_snapshot.valid_items }} valid materials</div>
+      <div class="snapshot-card-meta">{{ active_snapshot.duplicate_items }} duplicates removed</div>
+      {% if active_snapshot.validation_summary %}
+      <div class="snapshot-card-meta mt-2 small">{{ active_snapshot.validation_summary }}</div>
+      {% endif %}
+      <div class="mt-3">
+        <a href="{{ url_for('store.view_inventory', snapshot_id=active_snapshot.id) }}" class="btn btn-sm btn-light">View Materials</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="card-esms p-4">
+      <div class="empty-state">
+        <div class="empty-state-icon"><i class="bi bi-exclamation-triangle"></i></div>
+        <div class="empty-state-title">No Active Inventory</div>
+        <a href="{{ url_for('store.upload_inventory') }}" class="btn btn-primary btn-sm mt-2">Upload Now</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-8">
+    <div class="analytics-card">
+      <div class="analytics-card-header">Recently Approved Requests (Pending Issuance)</div>
+      <div class="table-responsive">
+        <table class="table table-esms mb-0">
+          <thead><tr><th>Request No.</th><th>Employee</th><th>Material</th><th>Qty</th><th>Amount</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for req in recent_requests %}
+            <tr>
+              <td class="fw-600"><code>{{ req.request_number }}</code></td>
+              <td>{{ req.requester_name }}</td>
+              <td title="{{ req.material_description }}">{{ req.material_description[:35] }}{% if req.material_description | length > 35 %}...{% endif %}</td>
+              <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
+              <td class="text-currency">{{ req.amount | currency }}</td>
+              <td>
+                <a href="{{ url_for('store.issuance_queue') }}" class="btn btn-sm btn-outline-primary">Issue</a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">No approved requests pending issuance.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 border-top">
+        <a href="{{ url_for('store.issuance_queue') }}" class="btn btn-outline-primary btn-sm">View All Approved Requests</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

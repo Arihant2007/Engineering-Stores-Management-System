@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Create Approval Rule - ESMS{% endblock %}
+{% block page_title %}Create Approval Rule{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Create Approval Rule</h1>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('admin.approval_rules') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+  </div>
+</div>
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card-esms">
+      <div class="card-header-esms"><h5 class="mb-0">Rule Configuration</h5></div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('admin.create_approval_rule') }}" data-loading>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Rule Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="name" required placeholder="e.g. High Value Approval">
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Min Amount (Rs.)</label>
+              <input type="number" class="form-control" name="min_amount" step="0.01" value="0" min="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Max Amount (Rs.) <small class="text-muted">(blank = no limit)</small></label>
+              <input type="number" class="form-control" name="max_amount" step="0.01" min="0">
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Required Approval Levels</label>
+            <select class="form-select" name="required_levels">
+              <option value="1">Level 1 Only</option>
+              <option value="2">Level 1 + Level 2</option>
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Create Rule</button>
+            <a href="{{ url_for('admin.approval_rules') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}New Requisition - ESMS{% endblock %}
+{% block page_title %}New Requisition{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Create Material Requisition</h1>
+    <p class="page-header-subtitle">Inventory: {{ active_snapshot.snapshot_date | date }} - {{ active_snapshot.valid_items }} materials available</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('employee.dashboard') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card-esms">
+      <div class="card-header-esms"><h5 class="mb-0">Requisition Details</h5></div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('employee.create_request') }}" novalidate data-loading id="reqForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="material_id" id="materialId">
+
+          <!-- Material Selection -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Material Description <span class="text-danger">*</span></label>
+            <select class="form-select" id="materialSelect" required>
+              <option value="">-- Select Material --</option>
+              {% for mat in materials %}
+              <option value="{{ mat.id }}"
+                data-code="{{ mat.material_code }}"
+                data-uom="{{ mat.uom }}"
+                data-rate="{{ mat.unit_rate | float }}"
+                data-stock="{{ mat.available_stock | float }}"
+                data-gl="{{ mat.gl_code }}"
+                data-cc="{{ mat.cost_center }}">
+                {{ mat.material_description }} ({{ mat.material_code }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Auto-filled Fields -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Material Code</label>
+              <input type="text" class="form-control bg-light" id="materialCode" readonly placeholder="Auto-filled">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">UOM</label>
+              <input type="text" class="form-control bg-light" id="materialUom" readonly placeholder="Auto-filled">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Available Stock</label>
+              <input type="text" class="form-control bg-light" id="materialStock" readonly placeholder="Auto-filled">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Unit Rate (Rs.)</label>
+              <input type="text" class="form-control bg-light" id="materialRate" readonly placeholder="Auto-filled">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Quantity Required <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="quantityInput" name="quantity_required" step="0.001" min="0.001" required placeholder="Enter quantity">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Total Amount</label>
+              <div class="form-control bg-light amount-display" id="amountDisplay" style="font-size:16px;">Rs. 0.00</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Cost Center</label>
+              <input type="text" class="form-control" id="costCenterInput" name="cost_center" placeholder="e.g. CC-1001">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">GL Code</label>
+              <input type="text" class="form-control" id="glCodeInput" name="gl_code" placeholder="e.g. GL-5001">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Purpose / Remarks <span class="text-muted" style="font-weight:400;font-size:12px;">(optional)</span></label>
+            <textarea class="form-control" name="purpose" rows="3" placeholder="Describe the purpose of this material request..."></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+              <i class="bi bi-send me-1"></i> Submit Requisition
+            </button>
+            <a href="{{ url_for('employee.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card-esms mb-4" id="materialInfoCard" style="display:none;">
+      <div class="card-header-esms"><h5 class="mb-0">Selected Material</h5></div>
+      <div class="card-body p-4">
+        <div class="detail-item mb-3"><div class="detail-label">Description</div><div class="detail-value" id="infoDescription">-</div></div>
+        <div class="detail-item mb-3"><div class="detail-label">Material Code</div><div class="detail-value" id="infoCode">-</div></div>
+        <div class="detail-item mb-3"><div class="detail-label">UOM</div><div class="detail-value" id="infoUom">-</div></div>
+        <div class="detail-item mb-3"><div class="detail-label">Unit Rate</div><div class="detail-value" id="infoRate">-</div></div>
+        <div class="detail-item mb-3"><div class="detail-label">Available Stock</div><div class="detail-value" id="infoStock">-</div></div>
+      </div>
+    </div>
+
+    <div class="card-esms">
+      <div class="card-header-esms"><h5 class="mb-0">Approval Routing</h5></div>
+      <div class="card-body p-4">
+        <div class="small text-muted mb-3">Based on total amount:</div>
+        <div class="detail-item mb-2">
+          <div class="d-flex justify-content-between">
+            <span class="small">Amount up to Rs. 3,000</span>
+            <span class="badge bg-primary small">Level 1 only</span>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="d-flex justify-content-between">
+            <span class="small">Amount above Rs. 3,000</span>
+            <span class="badge bg-warning small">Level 1 + Level 2</span>
+          </div>
+        </div>
+        <div class="mt-3 p-3 bg-light rounded" id="approvalInfo">
+          <div class="small text-muted">Select a material and enter quantity to see routing.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const materialSelect = document.getElementById('materialSelect');
+const materialIdInput = document.getElementById('materialId');
+const materialCode = document.getElementById('materialCode');
+const materialUom = document.getElementById('materialUom');
+const materialStock = document.getElementById('materialStock');
+const materialRate = document.getElementById('materialRate');
+const quantityInput = document.getElementById('quantityInput');
+const amountDisplay = document.getElementById('amountDisplay');
+const submitBtn = document.getElementById('submitBtn');
+const materialInfoCard = document.getElementById('materialInfoCard');
+const approvalInfo = document.getElementById('approvalInfo');
+const costCenterInput = document.getElementById('costCenterInput');
+const glCodeInput = document.getElementById('glCodeInput');
+
+let currentRate = 0;
+let currentStock = 0;
+
+materialSelect.addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  if (!opt.value) {
+    materialIdInput.value = '';
+    materialCode.value = '';
+    materialUom.value = '';
+    materialStock.value = '';
+    materialRate.value = '';
+    amountDisplay.textContent = 'Rs. 0.00';
+    materialInfoCard.style.display = 'none';
+    submitBtn.disabled = true;
+    currentRate = 0;
+    currentStock = 0;
+    return;
+  }
+  materialIdInput.value = opt.value;
+  materialCode.value = opt.dataset.code;
+  materialUom.value = opt.dataset.uom;
+  currentRate = parseFloat(opt.dataset.rate) || 0;
+  currentStock = parseFloat(opt.dataset.stock) || 0;
+  materialStock.value = currentStock + ' ' + opt.dataset.uom;
+  materialRate.value = 'Rs. ' + currentRate.toFixed(2);
+  if (opt.dataset.cc) costCenterInput.value = opt.dataset.cc;
+  if (opt.dataset.gl) glCodeInput.value = opt.dataset.gl;
+
+  document.getElementById('infoDescription').textContent = opt.text.split(' (')[0];
+  document.getElementById('infoCode').textContent = opt.dataset.code;
+  document.getElementById('infoUom').textContent = opt.dataset.uom;
+  document.getElementById('infoRate').textContent = 'Rs. ' + currentRate.toFixed(2);
+  document.getElementById('infoStock').textContent = currentStock + ' ' + opt.dataset.uom;
+  materialInfoCard.style.display = 'block';
+  submitBtn.disabled = false;
+  updateAmount();
+});
+
+quantityInput.addEventListener('input', updateAmount);
+
+function updateAmount() {
+  const qty = parseFloat(quantityInput.value) || 0;
+  const amount = qty * currentRate;
+  amountDisplay.textContent = 'Rs. ' + amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+  if (qty > 0 && currentStock > 0 && qty > currentStock) {
+    quantityInput.classList.add('is-invalid');
+    submitBtn.disabled = true;
+  } else {
+    quantityInput.classList.remove('is-invalid');
+    submitBtn.disabled = !materialIdInput.value;
+  }
+
+  // Update approval routing
+  if (amount > 0) {
+    if (amount <= 3000) {
+      approvalInfo.innerHTML = '<div class="small"><strong>Routing:</strong> Level 1 Approval only</div><div class="small text-muted">Amount: Rs. ' + amount.toFixed(2) + '</div>';
+    } else {
+      approvalInfo.innerHTML = '<div class="small"><strong>Routing:</strong> Level 1 + Level 2 Approval required</div><div class="small text-muted">Amount: Rs. ' + amount.toFixed(2) + '</div>';
+    }
+  }
+}
+</script>
+{% endblock %}

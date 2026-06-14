@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Notifications - ESMS{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Notifications</h1>
+    <p class="page-header-subtitle">Your recent activity and alerts</p>
+  </div>
+</div>
+
+<div class="table-container">
+  {% for notif in pagination.items %}
+  <div class="notif-item {{ 'unread' if not notif.is_read else '' }}">
+    <div class="notif-icon {{ notif.notification_type or 'default' }}">
+      {% if notif.notification_type == 'approved' %}<i class="bi bi-check-circle-fill"></i>
+      {% elif notif.notification_type == 'rejected' %}<i class="bi bi-x-circle-fill"></i>
+      {% elif notif.notification_type == 'issued' %}<i class="bi bi-box-arrow-right"></i>
+      {% elif notif.notification_type == 'request_created' %}<i class="bi bi-bell-fill"></i>
+      {% else %}<i class="bi bi-info-circle-fill"></i>
+      {% endif %}
+    </div>
+    <div class="notif-content">
+      <div class="notif-title">{{ notif.title }}</div>
+      <div class="notif-message">{{ notif.message }}</div>
+      <div class="notif-time">{{ notif.created_at | datetime }}</div>
+    </div>
+    {% if notif.request %}
+    <div>
+      <a href="{{ url_for('employee.view_request', request_id=notif.request_id) }}" class="btn btn-sm btn-outline-primary">View</a>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon"><i class="bi bi-bell-slash"></i></div>
+    <div class="empty-state-title">No Notifications</div>
+    <div class="empty-state-subtitle">You are all caught up.</div>
+  </div>
+  {% endfor %}
+
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if pagination.has_prev %}
+        <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}">Previous</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+          {% if p %}
+          <li class="page-item {{ 'active' if p == pagination.page else '' }}"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Approval Rules - ESMS{% endblock %}
+{% block page_title %}Approval Rules{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Approval Rules</h1>
+    <p class="page-header-subtitle">Configure amount-based approval routing</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('admin.create_approval_rule') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Add Rule</a>
+  </div>
+</div>
+
+<div class="alert alert-info mb-4">
+  <i class="bi bi-info-circle me-2"></i>
+  Default rule: Requests up to Rs. 3,000 require Level 1 approval only. Requests above Rs. 3,000 require both Level 1 and Level 2 approval.
+</div>
+
+<div class="table-container">
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Rule Name</th><th>Min Amount</th><th>Max Amount</th><th>Required Levels</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for rule in rules %}
+        <tr>
+          <td class="fw-600">{{ rule.name }}</td>
+          <td>Rs. {{ '{:,.2f}'.format(rule.min_amount | float) }}</td>
+          <td>{% if rule.max_amount %}Rs. {{ '{:,.2f}'.format(rule.max_amount | float) }}{% else %}No Limit{% endif %}</td>
+          <td><span class="badge {{ 'bg-primary' if rule.required_levels == 2 else 'bg-secondary' }}">Level {{ rule.required_levels }}</span></td>
+          <td>{% if rule.is_active %}<span class="status-badge status-approved">Active</span>{% else %}<span class="status-badge status-rejected">Inactive</span>{% endif %}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.delete_approval_rule', rule_id=rule.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Delete this rule?">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-5">No custom rules configured. Default rules apply.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

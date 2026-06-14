@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}My Requests - ESMS{% endblock %}
+{% block page_title %}My Requests{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">My Requisitions</h1>
+    <p class="page-header-subtitle">Track and manage your material requests</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('employee.create_request') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i> New Requisition
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card primary"><div class="stat-icon primary"><i class="bi bi-file-earmark-text"></i></div><div class="stat-content"><div class="stat-value">{{ stats.total }}</div><div class="stat-label">Total</div></div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card warning"><div class="stat-icon warning"><i class="bi bi-hourglass-split"></i></div><div class="stat-content"><div class="stat-value">{{ stats.pending }}</div><div class="stat-label">Pending</div></div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card success"><div class="stat-icon success"><i class="bi bi-check-circle"></i></div><div class="stat-content"><div class="stat-value">{{ stats.approved }}</div><div class="stat-label">Approved</div></div></div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card purple"><div class="stat-icon purple"><i class="bi bi-box-arrow-right"></i></div><div class="stat-content"><div class="stat-value">{{ stats.issued }}</div><div class="stat-label">Issued</div></div></div>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-toolbar">
+    <span class="fw-600 text-muted small">Recent Requisitions</span>
+    <a href="{{ url_for('employee.my_requests') }}" class="btn btn-sm btn-outline-primary">View All</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead><tr><th>Request No.</th><th>Material</th><th>Quantity</th><th>Amount</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for req in my_requests.items %}
+        <tr>
+          <td class="fw-600"><code>{{ req.request_number }}</code></td>
+          <td title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description | length > 40 %}...{% endif %}</td>
+          <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
+          <td class="text-currency">{{ req.amount | currency }}</td>
+          <td>
+            <span class="status-badge status-{{ req.status.lower().replace(' ', '-') }}">
+              {{ req.status }}
+            </span>
+          </td>
+          <td class="text-muted">{{ req.created_at | date }}</td>
+          <td><a href="{{ url_for('employee.view_request', request_id=req.id) }}" class="btn btn-sm btn-outline-secondary">View</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center py-5">
+          <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-file-earmark-plus"></i></div>
+            <div class="empty-state-title">No Requisitions Yet</div>
+            <a href="{{ url_for('employee.create_request') }}" class="btn btn-primary btn-sm mt-3">Create Your First Requisition</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

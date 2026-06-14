@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Request {{ req.request_number }} - ESMS{% endblock %}
+{% block page_title %}Requisition Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">{{ req.request_number }}</h1>
+    <p class="page-header-subtitle">Created {{ req.created_at | datetime }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="{{ url_for('employee.dashboard') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card-esms mb-4">
+      <div class="card-header-esms d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Request Details</h5>
+        <span class="status-badge status-{{ req.status.lower().replace(' ', '-') }}">{{ req.status }}</span>
+      </div>
+      <div class="card-body p-4">
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Request Number</div><div class="detail-value fw-600">{{ req.request_number }}</div></div>
+          <div class="detail-item"><div class="detail-label">Requester</div><div class="detail-value">{{ req.requester_name }}</div></div>
+          <div class="detail-item"><div class="detail-label">Department</div><div class="detail-value">{{ req.department }}</div></div>
+          <div class="detail-item"><div class="detail-label">Material Code</div><div class="detail-value"><code>{{ req.material_code }}</code></div></div>
+          <div class="detail-item" style="grid-column:span 2;"><div class="detail-label">Material Description</div><div class="detail-value">{{ req.material_description }}</div></div>
+          <div class="detail-item"><div class="detail-label">UOM</div><div class="detail-value">{{ req.uom }}</div></div>
+          <div class="detail-item"><div class="detail-label">Unit Rate</div><div class="detail-value text-currency">{{ req.unit_rate | currency }}</div></div>
+          <div class="detail-item"><div class="detail-label">Quantity Required</div><div class="detail-value fw-600">{{ req.quantity_required | float }} {{ req.uom }}</div></div>
+          <div class="detail-item"><div class="detail-label">Total Amount</div><div class="detail-value fw-700 text-brand amount-display">{{ req.amount | currency }}</div></div>
+          <div class="detail-item"><div class="detail-label">Cost Center</div><div class="detail-value">{{ req.cost_center or '-' }}</div></div>
+          <div class="detail-item"><div class="detail-label">GL Code</div><div class="detail-value">{{ req.gl_code or '-' }}</div></div>
+          <div class="detail-item" style="grid-column:span 2;"><div class="detail-label">Purpose / Remarks</div><div class="detail-value">{{ req.purpose or '-' }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    {% if req.issued_material %}
+    <div class="card-esms mb-4">
+      <div class="card-header-esms"><h5 class="mb-0">Issuance Details</h5></div>
+      <div class="card-body p-4">
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Issued By</div><div class="detail-value">{{ req.issued_material.issued_by_user.full_name if req.issued_material.issued_by_user else '-' }}</div></div>
+          <div class="detail-item"><div class="detail-label">Issue Date</div><div class="detail-value">{{ req.issued_material.issued_date | date }}</div></div>
+          <div class="detail-item"><div class="detail-label">Issue Time</div><div class="detail-value">{{ req.issued_material.issued_time }}</div></div>
+          {% if req.issued_material.remarks %}
+          <div class="detail-item"><div class="detail-label">Remarks</div><div class="detail-value">{{ req.issued_material.remarks }}</div></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card-esms">
+      <div class="card-header-esms"><h5 class="mb-0">Approval History</h5></div>
+      <div class="card-body p-3">
+        <!-- Status timeline -->
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot pending"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Request Submitted</div>
+              <div class="timeline-meta">{{ req.created_at | datetime }}</div>
+              <div class="timeline-meta">by {{ req.requester_name }}</div>
+            </div>
+          </div>
+
+          {% for approval in approvals %}
+          <div class="timeline-item">
+            <div class="timeline-dot {{ approval.action.lower() }}"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Level {{ approval.approval_level }}: {{ approval.action }}</div>
+              <div class="timeline-meta">{{ approval.actioned_at | datetime }}</div>
+              <div class="timeline-meta">by {{ approval.approver.full_name }}</div>
+              {% if approval.remarks %}
+              <div class="timeline-meta mt-1"><em>"{{ approval.remarks }}"</em></div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+
+          {% if req.status == 'Issued' and req.issued_material %}
+          <div class="timeline-item">
+            <div class="timeline-dot approved"></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Material Issued</div>
+              <div class="timeline-meta">{{ req.issued_material.issued_date | date }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

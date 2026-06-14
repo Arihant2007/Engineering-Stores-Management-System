@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Issue Materials - ESMS{% endblock %}
+{% block page_title %}Material Issuance Queue{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-header-title">Material Issuance Queue</h1>
+    <p class="page-header-subtitle">Approved requests ready for issuance</p>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-toolbar">
+    <form method="GET" class="search-bar">
+      <div class="search-input-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" name="search" class="form-control" placeholder="Search request number, employee, material..." value="{{ search }}">
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+      {% if search %}<a href="{{ url_for('store.issuance_queue') }}" class="btn btn-outline-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-esms mb-0">
+      <thead>
+        <tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Qty</th><th>Amount</th><th>Cost Center</th><th>GL Code</th><th>Created</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for req in pagination.items %}
+        <tr>
+          <td class="fw-600"><code>{{ req.request_number }}</code></td>
+          <td>{{ req.requester_name }}</td>
+          <td>{{ req.department }}</td>
+          <td title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description | length > 40 %}...{% endif %}</td>
+          <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
+          <td class="text-currency fw-600">{{ req.amount | currency }}</td>
+          <td>{{ req.cost_center or '-' }}</td>
+          <td>{{ req.gl_code or '-' }}</td>
+          <td class="text-muted">{{ req.created_at | date }}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#issueModal{{ req.id }}">
+              Issue Material
+            </button>
+          </td>
+        </tr>
+
+        <!-- Issue Modal -->
+        <div class="modal fade" id="issueModal{{ req.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Issue Material - {{ req.request_number }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <table class="table table-sm table-bordered mb-3">
+                  <tr><td class="fw-600">Material</td><td>{{ req.material_description }}</td></tr>
+                  <tr><td class="fw-600">Quantity</td><td>{{ req.quantity_required | float }} {{ req.uom }}</td></tr>
+                  <tr><td class="fw-600">Amount</td><td>{{ req.amount | currency }}</td></tr>
+                  <tr><td class="fw-600">Employee</td><td>{{ req.requester_name }}</td></tr>
+                  <tr><td class="fw-600">Department</td><td>{{ req.department }}</td></tr>
+                </table>
+                <form method="POST" action="{{ url_for('store.issue_material', request_id=req.id) }}" id="issueForm{{ req.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">Remarks (Optional)</label>
+                    <textarea class="form-control" name="remarks" rows="2" placeholder="Any issuance remarks..."></textarea>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="issueForm{{ req.id }}" class="btn btn-primary"><i class="bi bi-box-arrow-right me-1"></i> Confirm Issue</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <tr><td colspan="10" class="text-center py-5">
+          <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
+            <div class="empty-state-title">No Approved Requests</div>
+            <div class="empty-state-subtitle">No requests are currently pending issuance.</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination.pages > 1 %}
+  <div class="table-footer">
+    <span class="text-muted small">{{ pagination.total }} requests pending issuance</span>
+    <nav><ul class="pagination pagination-sm mb-0">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}">Previous</a></li>{% endif %}
+      {% for p in pagination.iter_pages() %}{% if p %}<li class="page-item {{ 'active' if p == pagination.page }}"><a class="page-link" href="?page={{ p }}&search={{ search }}">{{ p }}</a></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}">Next</a></li>{% endif %}
+    </ul></nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
