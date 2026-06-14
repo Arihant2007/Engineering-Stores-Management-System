@@ -20,7 +20,9 @@ def login():
             flash('Username and password are required.', 'danger')
             return render_template('auth/login.html')
 
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter(
+            (User.username == username) | (User.email == username)
+        ).first()
 
         if user and user.check_password(password):
             if not user.is_active:
