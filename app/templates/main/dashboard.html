@@ -75,8 +75,12 @@
     <input type="text" id="reqSearch" placeholder="Search by request number, material, requester...">
   </div>
   <div class="v-list-filters">
+    {% if current_user.is_admin() %}
     <a href="{{ url_for('admin.users') }}" class="v-filter-btn" style="text-decoration:none;"><i class="fas fa-users"></i> Manage Users</a>
+    {% endif %}
+    {% if current_user.is_store_manager() or current_user.is_admin() %}
     <a href="{{ url_for('reports.dashboard') }}" class="v-filter-btn" style="text-decoration:none;"><i class="fas fa-chart-bar"></i> Reports</a>
+    {% endif %}
   </div>
 </div>
 

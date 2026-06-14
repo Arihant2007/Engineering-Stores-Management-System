@@ -176,7 +176,7 @@
   </button>
 
   {# Desktop collapse button #}
-  <button class="topbar-toggle d-none d-lg-flex" id="sidebarCollapseBtn" aria-label="Toggle sidebar">
+  <button class="topbar-toggle d-none d-md-flex" id="sidebarCollapseBtn" aria-label="Toggle sidebar">
     <i class="fas fa-bars"></i>
   </button>
 
@@ -340,18 +340,21 @@
     // Check saved
     const savedTheme = localStorage.getItem('esms_theme');
     if (savedTheme === 'dark') {
-      document.body.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
       icon.className = 'fas fa-sun';
     }
 
     darkModeBtn.addEventListener('click', function() {
-      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       if (isDark) {
-        document.body.removeAttribute('data-theme');
+        document.documentElement.removeAttribute('data-theme');
+        document.documentElement.removeAttribute('data-bs-theme');
         localStorage.setItem('esms_theme', 'light');
         icon.className = 'fas fa-moon';
       } else {
-        document.body.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
         localStorage.setItem('esms_theme', 'dark');
         icon.className = 'fas fa-sun';
       }
