@@ -46,8 +46,8 @@ def seed():
             },
             {
                 'username': 'store.manager',
-                'email': 'storemanager@engineering.com',
-                'full_name': 'Ramesh Kumar',
+                'email': 'sunil.avirneni@gmail.com',
+                'full_name': 'Store Manager',
                 'department': 'Stores',
                 'role': 'store_manager',
                 'password': 'Store@123',
@@ -78,8 +78,8 @@ def seed():
             },
             {
                 'username': 'approver.l1',
-                'email': 'approver1@engineering.com',
-                'full_name': 'Suresh Nair',
+                'email': 'sunilraoavirneni@gmail.com',
+                'full_name': 'Approver L1',
                 'department': 'Engineering',
                 'role': 'approver_l1',
                 'password': 'Approver@123',

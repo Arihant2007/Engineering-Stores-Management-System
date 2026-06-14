@@ -37,6 +37,10 @@ def generate_request_number():
 
 def determine_approval_levels(amount):
     """Determine required approval levels based on amount and configured rules."""
+    from flask import current_app
+    if not current_app.config.get('ENABLE_LEVEL_2_APPROVAL', False):
+        return 1
+
     rules = ApprovalRule.query.filter_by(is_active=True).order_by(ApprovalRule.min_amount).all()
     if rules:
         for rule in reversed(rules):

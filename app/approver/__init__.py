@@ -151,6 +151,16 @@ def action_request(request_id):
                 message=f'Your request {req.request_number} for {req.material_description} has been approved and is ready for issuance.',
                 notification_type='approved'
             )
+            # Notify Store Managers
+            store_managers = User.query.filter_by(role='store_manager', is_active=True).all()
+            for sm in store_managers:
+                send_notification(
+                    user_id=sm.id,
+                    request_id=req.id,
+                    title='New Approved Requisition in Queue',
+                    message=f'Request {req.request_number} for {req.material_description} has been approved and is pending issuance.',
+                    notification_type='approved'
+                )
         elif req.required_approval_levels == 2 and approval_level == 1:
             # Move to L2
             req.current_approval_level = 1

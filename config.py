@@ -43,6 +43,7 @@ class Config:
     # App settings
     ITEMS_PER_PAGE = 20
     APP_NAME = 'Engineering Stores Management System'
+    ENABLE_LEVEL_2_APPROVAL = False
 
     @staticmethod
     def init_app(app):
