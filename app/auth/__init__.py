@@ -21,7 +21,8 @@ def login():
             return render_template('auth/login.html')
 
         user = User.query.filter(
-            (User.username == username) | (User.email == username)
+            (db.func.lower(User.username) == username.lower()) |
+            (db.func.lower(User.email) == username.lower())
         ).first()
 
         if user and user.check_password(password):
