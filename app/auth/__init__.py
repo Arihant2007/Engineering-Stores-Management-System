@@ -2,9 +2,9 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from flask import current_app
-from flask_mail import Message
-from app import db, mail
+from app import db
 from app.models import User, AuditLog
+from app.email_utils import send_email
 import logging
 
 logger = logging.getLogger(__name__)
@@ -174,32 +174,22 @@ def change_password():
 def send_password_reset_email(user):
     logger.info(f"Sending password reset email to {user.email}...")
     token = user.get_reset_password_token()
-    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'noreply@esms.com'
-    msg = Message('[ESMS] Reset Your Password',
-                  sender=sender,
-                  recipients=[user.email])
     reset_url = url_for('auth.reset_password', token=token, _external=True)
-    msg.body = f'''To reset your password, visit the following link:
+    text_content = f'''To reset your password, visit the following link:
 {reset_url}
 
 If you did not make this request then simply ignore this email and no changes will be made.
 '''
-    msg.html = f'''<p>To reset your password, visit the following link:</p>
+    html_content = f'''<p>To reset your password, visit the following link:</p>
 <p><a href="{reset_url}">Reset Password</a></p>
 <p>If you did not make this request then simply ignore this email and no changes will be made.</p>
 '''
-    logger.info(f"Preparing to send mail.send()...")
-    logger.info(f"msg.sender: {msg.sender}")
-    logger.info(f"msg.recipients: {msg.recipients}")
-    logger.info(f"msg.subject: {msg.subject}")
-    logger.info(f"MAIL_SERVER: {current_app.config.get('MAIL_SERVER')}")
-    logger.info(f"MAIL_PORT: {current_app.config.get('MAIL_PORT')}")
-    logger.info(f"MAIL_USE_TLS: {current_app.config.get('MAIL_USE_TLS')}")
-    logger.info(f"MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}")
-    
     try:
-        mail.send(msg)
-        logger.info("Password reset email sent successfully")
+        success = send_email(user.email, '[ESMS] Reset Your Password', html_content, text_content)
+        if success:
+            logger.info("Password reset email sent successfully")
+        else:
+            logger.error("Password reset email sending failed via Resend API")
     except Exception as e:
         logger.exception("Password reset email failed")
 
@@ -248,40 +238,19 @@ def test_email():
         return "Unauthorized", 401
     
     to_email = request.args.get('to', current_user.email)
-    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'noreply@esms.com'
-    subject = f"SMTP Test {datetime.utcnow().isoformat()}"
+    subject = f"Resend Test {datetime.utcnow().isoformat()}"
+    html_content = "<p>This is a test email sent via the Resend API.</p>"
+    text_content = "This is a test email sent via the Resend API."
     
-    msg = Message(subject,
-                  sender=sender,
-                  recipients=[to_email])
-    msg.body = 'This is a test email.'
-    
-    logger.info(f"TEST EMAIL - Preparing to send mail.send()...")
-    logger.info(f"TEST EMAIL - msg.sender: {msg.sender}")
-    logger.info(f"TEST EMAIL - msg.recipients: {msg.recipients}")
-    logger.info(f"TEST EMAIL - msg.subject: {msg.subject}")
-    logger.info(f"TEST EMAIL - MAIL_SERVER: {current_app.config.get('MAIL_SERVER')}")
-    logger.info(f"TEST EMAIL - MAIL_PORT: {current_app.config.get('MAIL_PORT')}")
-    logger.info(f"TEST EMAIL - MAIL_USE_TLS: {current_app.config.get('MAIL_USE_TLS')}")
-    logger.info(f"TEST EMAIL - MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}")
-    
-    import os
-    logger.info(f"TEST EMAIL - os.environ.get('FLASK_ENV'): {os.environ.get('FLASK_ENV')}")
-    logger.info(f"TEST EMAIL - os.environ.get('MAIL_SUPPRESS_SEND'): {os.environ.get('MAIL_SUPPRESS_SEND')}")
-    
-    suppress_val = current_app.config.get('MAIL_SUPPRESS_SEND')
-    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND value: {suppress_val}")
-    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND type: {type(suppress_val)}")
-    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND repr: {repr(suppress_val)}")
-    logger.info(f"TEST EMAIL - current_app.config['ENV']: {current_app.config.get('ENV')}")
-    
+    logger.info(f"TEST EMAIL - Preparing to send via Resend...")
     try:
-        logger.info("TEST EMAIL - Executing mail.send(msg) synchronously now...")
-        mail.send(msg)
-        logger.info("TEST EMAIL - mail.send(msg) completed successfully without exceptions.")
-        return f"Email supposedly sent to {to_email}. Check logs for details."
+        success = send_email(to_email, subject, html_content, text_content)
+        if success:
+            return f"Test email sent successfully via Resend to {to_email}."
+        else:
+            return f"Failed to send test email via Resend to {to_email}.", 500
     except Exception as e:
-        logger.exception("TEST EMAIL - SMTP Exception caught during mail.send(msg)")
+        logger.exception("TEST EMAIL - Exception caught during send_email")
         return f"Failed to send email: {str(e)}", 500
 
 @auth.route('/smtp_test')

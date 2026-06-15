@@ -1,8 +1,8 @@
 import threading
 from flask import current_app
-from flask_mail import Message
-from app import db, mail
+from app import db
 from app.models import Notification
+from app.email_utils import send_email
 
 
 def send_notification(user_id, request_id, title, message, notification_type):
@@ -72,14 +72,12 @@ def send_email_notification(app, recipient_email, recipient_name, title, message
             </html>
             """
 
-            msg = Message(
-                subject=f'[ESMS] {title}',
-                recipients=[recipient_email],
-                html=html_body,
-                sender=app.config.get('MAIL_DEFAULT_SENDER', app.config.get('MAIL_USERNAME'))
-            )
-            mail.send(msg)
-            app.logger.info("Email sent successfully")
+            subject = f'[ESMS] {title}'
+            success = send_email(recipient_email, subject, html_body)
+            if success:
+                app.logger.info("Email sent successfully")
+            else:
+                app.logger.error("Email sending failed via Resend API")
         except Exception as e:
             app.logger.error(f'Email send failed with exception details: {str(e)}')
 
