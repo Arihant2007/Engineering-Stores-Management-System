@@ -43,6 +43,10 @@ def create_app(config_name=None):
     migrate.init_app(app, db)
     
     logger.info(f"STARTUP - app.config['MAIL_SUPPRESS_SEND'] immediately before mail.init_app(app): {app.config.get('MAIL_SUPPRESS_SEND')}")
+    logger.info("STARTUP - FORCING MAIL_SUPPRESS_SEND = False FOR DEBUGGING")
+    app.config['MAIL_SUPPRESS_SEND'] = False
+    logger.info(f"STARTUP - app.config['MAIL_SUPPRESS_SEND'] after forcing: {app.config.get('MAIL_SUPPRESS_SEND')}")
+    
     mail.init_app(app)
     csrf.init_app(app)
 
