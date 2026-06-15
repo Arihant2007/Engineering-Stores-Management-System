@@ -264,7 +264,16 @@ def test_email():
     logger.info(f"TEST EMAIL - MAIL_PORT: {current_app.config.get('MAIL_PORT')}")
     logger.info(f"TEST EMAIL - MAIL_USE_TLS: {current_app.config.get('MAIL_USE_TLS')}")
     logger.info(f"TEST EMAIL - MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}")
-    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND: {current_app.config.get('MAIL_SUPPRESS_SEND')}")
+    
+    import os
+    logger.info(f"TEST EMAIL - os.environ.get('FLASK_ENV'): {os.environ.get('FLASK_ENV')}")
+    logger.info(f"TEST EMAIL - os.environ.get('MAIL_SUPPRESS_SEND'): {os.environ.get('MAIL_SUPPRESS_SEND')}")
+    
+    suppress_val = current_app.config.get('MAIL_SUPPRESS_SEND')
+    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND value: {suppress_val}")
+    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND type: {type(suppress_val)}")
+    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND repr: {repr(suppress_val)}")
+    logger.info(f"TEST EMAIL - current_app.config['ENV']: {current_app.config.get('ENV')}")
     
     try:
         logger.info("TEST EMAIL - Executing mail.send(msg) synchronously now...")
