@@ -67,6 +67,7 @@ def users():
 def create_user():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        employee_id = request.form.get('employee_id', '').strip()
         email = request.form.get('email', '').strip()
         full_name = request.form.get('full_name', '').strip()
         department = request.form.get('department', '').strip()
@@ -88,6 +89,8 @@ def create_user():
             errors.append('Username already exists.')
         if User.query.filter_by(email=email).first():
             errors.append('Email already exists.')
+        if employee_id and User.query.filter_by(employee_id=employee_id).first():
+            errors.append('Employee ID already exists.')
 
         if errors:
             for e in errors:
@@ -96,6 +99,7 @@ def create_user():
 
         user = User(
             username=username,
+            employee_id=employee_id if employee_id else None,
             email=email,
             full_name=full_name,
             department=department,
@@ -130,6 +134,13 @@ def edit_user(user_id):
     if request.method == 'POST':
         user.full_name = request.form.get('full_name', '').strip()
         user.email = request.form.get('email', '').strip()
+        
+        employee_id = request.form.get('employee_id', '').strip()
+        if employee_id:
+            user.employee_id = employee_id
+        else:
+            user.employee_id = None
+            
         user.department = request.form.get('department', '').strip()
         user.role = request.form.get('role', '')
         user.is_active = request.form.get('is_active') == 'on'

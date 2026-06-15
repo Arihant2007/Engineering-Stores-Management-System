@@ -6,6 +6,69 @@ from app.models import User, AuditLog
 
 auth = Blueprint('auth', __name__)
 
+@auth.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    if request.method == 'POST':
+        employee_id = request.form.get('employee_id', '').strip()
+        full_name = request.form.get('full_name', '').strip()
+        department = request.form.get('department', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not employee_id or not full_name or not email or not password:
+            flash('Please fill out all required fields.', 'danger')
+            return render_template('auth/register.html')
+            
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('auth/register.html')
+
+        if User.query.filter((db.func.lower(User.email) == email.lower())).first():
+            flash('A user with that email already exists.', 'danger')
+            return render_template('auth/register.html')
+
+        if User.query.filter_by(employee_id=employee_id).first():
+            flash('A user with that Employee ID already exists.', 'danger')
+            return render_template('auth/register.html')
+            
+        if User.query.filter_by(username=employee_id).first():
+            flash('That Employee ID is already in use as a username.', 'danger')
+            return render_template('auth/register.html')
+
+        user = User(
+            username=employee_id,
+            employee_id=employee_id,
+            full_name=full_name,
+            department=department,
+            email=email,
+            role='employee',
+            is_active=True
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+
+        log = AuditLog(
+            user_id=user.id,
+            action='REGISTER',
+            entity_type='User',
+            entity_id=user.id,
+            details=f'New employee self-registered: {user.employee_id}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        flash('Registration successful! You can now log in.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/register.html')
+
+
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
