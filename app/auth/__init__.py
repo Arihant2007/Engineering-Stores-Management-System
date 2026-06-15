@@ -192,6 +192,10 @@ If you did not make this request then simply ignore this email and no changes wi
     logger.info(f"msg.sender: {msg.sender}")
     logger.info(f"msg.recipients: {msg.recipients}")
     logger.info(f"msg.subject: {msg.subject}")
+    logger.info(f"MAIL_SERVER: {current_app.config.get('MAIL_SERVER')}")
+    logger.info(f"MAIL_PORT: {current_app.config.get('MAIL_PORT')}")
+    logger.info(f"MAIL_USE_TLS: {current_app.config.get('MAIL_USE_TLS')}")
+    logger.info(f"MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}")
     
     try:
         mail.send(msg)
@@ -243,24 +247,30 @@ def test_email():
     if not current_user.is_authenticated or not current_user.is_admin():
         return "Unauthorized", 401
     
+    to_email = request.args.get('to', current_user.email)
     sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'noreply@esms.com'
-    msg = Message('[ESMS] Test Email',
+    subject = f"SMTP Test {datetime.utcnow().isoformat()}"
+    
+    msg = Message(subject,
                   sender=sender,
-                  recipients=[current_user.email])
+                  recipients=[to_email])
     msg.body = 'This is a test email.'
     
     logger.info(f"TEST EMAIL - Preparing to send mail.send()...")
     logger.info(f"TEST EMAIL - msg.sender: {msg.sender}")
     logger.info(f"TEST EMAIL - msg.recipients: {msg.recipients}")
+    logger.info(f"TEST EMAIL - msg.subject: {msg.subject}")
     logger.info(f"TEST EMAIL - MAIL_SERVER: {current_app.config.get('MAIL_SERVER')}")
+    logger.info(f"TEST EMAIL - MAIL_PORT: {current_app.config.get('MAIL_PORT')}")
+    logger.info(f"TEST EMAIL - MAIL_USE_TLS: {current_app.config.get('MAIL_USE_TLS')}")
     logger.info(f"TEST EMAIL - MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}")
     logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND: {current_app.config.get('MAIL_SUPPRESS_SEND')}")
     
     try:
+        logger.info("TEST EMAIL - Executing mail.send(msg) synchronously now...")
         mail.send(msg)
-        return f"Email supposedly sent to {current_user.email}. Check logs for details."
+        logger.info("TEST EMAIL - mail.send(msg) completed successfully without exceptions.")
+        return f"Email supposedly sent to {to_email}. Check logs for details."
     except Exception as e:
-        logger.exception("TEST EMAIL - Failed")
+        logger.exception("TEST EMAIL - SMTP Exception caught during mail.send(msg)")
         return f"Failed to send email: {str(e)}", 500
-
-
