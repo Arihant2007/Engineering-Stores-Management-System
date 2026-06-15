@@ -38,6 +38,7 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', '')
     MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', 'false').lower() == 'true'
+    MAIL_DEBUG = True  # Added for debugging SMTP
     GLOBAL_NOTIFICATION_EMAILS = os.environ.get('GLOBAL_NOTIFICATION_EMAILS', '')
 
     # App settings
