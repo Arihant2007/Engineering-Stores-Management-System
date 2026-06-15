@@ -85,33 +85,6 @@
                 Delete
               </button>
             </div>
-
-            <!-- Delete Confirmation Modal -->
-            <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1" aria-labelledby="deleteUserModalLabel{{ user.id }}" aria-hidden="true">
-              <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-danger">
-                  <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deleteUserModalLabel{{ user.id }}">
-                      <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete User Confirmation
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body text-center py-4">
-                    <i class="bi bi-x-circle text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h4 class="mb-3">Are you sure?</h4>
-                    <p class="text-muted mb-0">You are about to permanently delete the user <strong>{{ user.full_name }}</strong>.</p>
-                    <p class="text-muted small mt-2">If this user has historical records (requisitions, approvals), deletion will be blocked and you must deactivate them instead.</p>
-                  </div>
-                  <div class="modal-footer justify-content-center bg-light">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-danger px-4">Yes, Delete</button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>
           </td>
         </tr>
         {% else %}
@@ -132,4 +105,34 @@
   </div>
   {% endif %}
 </div>
+
+<!-- Delete Confirmation Modals -->
+{% for user in pagination.items %}
+<div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1" aria-labelledby="deleteUserModalLabel{{ user.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteUserModalLabel{{ user.id }}">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete User Confirmation
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <i class="bi bi-x-circle text-danger mb-3" style="font-size: 3rem;"></i>
+        <h4 class="mb-3">Are you sure?</h4>
+        <p class="text-muted mb-0">You are about to permanently delete the user <strong>{{ user.full_name }}</strong>.</p>
+        <p class="text-muted small mt-2">If this user has historical records (requisitions, approvals), deletion will be blocked and you must deactivate them instead.</p>
+      </div>
+      <div class="modal-footer justify-content-center bg-light">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-danger px-4">Yes, Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
 {% endblock %}
