@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
-from app import db
+from flask import current_app
+from flask_mail import Message
+from app import db, mail
 from app.models import User, AuditLog
 
 auth = Blueprint('auth', __name__)
@@ -165,3 +167,57 @@ def change_password():
         return redirect(url_for('main.dashboard'))
 
     return render_template('auth/change_password.html')
+
+def send_password_reset_email(user):
+    token = user.get_reset_password_token()
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'noreply@esms.com'
+    msg = Message('[ESMS] Reset Your Password',
+                  sender=sender,
+                  recipients=[user.email])
+    reset_url = url_for('auth.reset_password', token=token, _external=True)
+    msg.body = f'''To reset your password, visit the following link:
+{reset_url}
+
+If you did not make this request then simply ignore this email and no changes will be made.
+'''
+    msg.html = f'''<p>To reset your password, visit the following link:</p>
+<p><a href="{reset_url}">Reset Password</a></p>
+<p>If you did not make this request then simply ignore this email and no changes will be made.</p>
+'''
+    mail.send(msg)
+
+@auth.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    if request.method == 'POST':
+        email = request.form.get('email')
+        user = User.query.filter_by(email=email).first()
+        if user:
+            send_password_reset_email(user)
+        flash('Check your email for the instructions to reset your password', 'info')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password_request.html')
+
+@auth.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    user = User.verify_reset_password_token(token)
+    if not user:
+        flash('Invalid or expired reset token', 'danger')
+        return redirect(url_for('auth.login'))
+    if request.method == 'POST':
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+        if not password or len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+        elif password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+        else:
+            user.set_password(password)
+            db.session.commit()
+            flash('Your password has been reset.', 'success')
+            return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password.html', token=token)
+
