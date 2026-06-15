@@ -37,9 +37,7 @@ def send_email_notification(app, recipient_email, recipient_name, title, message
     """Send email notification via Gmail SMTP."""
     with app.app_context():
         try:
-            if app.config.get('MAIL_SUPPRESS_SEND') or not app.config.get('MAIL_USERNAME'):
-                app.logger.info(f"[EMAIL MOCK] Would have sent email to {recipient_email} with subject '{title}' (SMTP not configured or sending suppressed).")
-                return
+            app.logger.info(f"Email send started to {recipient_email} with subject '{title}'")
 
             request_details = ''
             if req:
@@ -81,8 +79,9 @@ def send_email_notification(app, recipient_email, recipient_name, title, message
                 sender=app.config.get('MAIL_DEFAULT_SENDER', app.config.get('MAIL_USERNAME'))
             )
             mail.send(msg)
+            app.logger.info("Email sent successfully")
         except Exception as e:
-            app.logger.error(f'Failed to send email to {recipient_email}: {str(e)}')
+            app.logger.error(f'Email send failed with exception details: {str(e)}')
 
 
 def get_unread_count(user_id):

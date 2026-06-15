@@ -16,7 +16,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(150), nullable=False)
     department = db.Column(db.String(100))
-    role = db.Column(db.String(50), nullable=False)  # admin, store_manager, employee, approver_l1, approver_l2
+    role = db.Column(db.String(50), nullable=False)  # admin, store_manager, employee, approver_l1
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -33,7 +33,6 @@ class User(UserMixin, db.Model):
         'store_manager': 'Store Manager',
         'employee': 'Employee',
         'approver_l1': 'Approver Level 1',
-        'approver_l2': 'Approver Level 2',
     }
 
     def set_password(self, password):
@@ -58,11 +57,8 @@ class User(UserMixin, db.Model):
     def is_approver_l1(self):
         return self.role == 'approver_l1'
 
-    def is_approver_l2(self):
-        return self.role == 'approver_l2'
-
     def is_approver(self):
-        return self.role in ('approver_l1', 'approver_l2')
+        return self.role == 'approver_l1'
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -153,6 +149,7 @@ class Request(db.Model):
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
 
     requester_name = db.Column(db.String(150), nullable=False)
+    requester_email = db.Column(db.String(120), nullable=True)
     department = db.Column(db.String(100), nullable=False)
     material_code = db.Column(db.String(100))
     material_description = db.Column(db.String(500))

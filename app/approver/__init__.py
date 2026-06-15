@@ -4,7 +4,9 @@ from flask_login import login_required, current_user
 from functools import wraps
 from app import db
 from app.models import Request, Approval, AuditLog, User, Notification
-from app.notifications import send_notification
+from app.notifications import send_notification, send_email_notification
+import threading
+from flask import current_app
 
 approver = Blueprint('approver', __name__)
 
@@ -143,7 +145,7 @@ def action_request(request_id):
             # Final approval
             req.status = 'Approved'
             req.current_approval_level = approval_level
-            # Notify employee
+            # Notify employee in-app
             send_notification(
                 user_id=req.user_id,
                 request_id=req.id,
@@ -151,7 +153,38 @@ def action_request(request_id):
                 message=f'Your request {req.request_number} for {req.material_description} has been approved and is ready for issuance.',
                 notification_type='approved'
             )
-            # Notify Store Managers
+            
+            # Send Email to Store Manager
+            store_manager_email = 'aj0329280@gmail.com'
+            app_obj = current_app._get_current_object()
+            sm_email_body = f"""
+            An approved requisition is awaiting material issue.
+            
+            Details:
+            - Request ID: {req.request_number}
+            - Employee Name: {req.requester_name}
+            - Material Name: {req.material_description}
+            - Quantity: {req.quantity_required} {req.uom}
+            - Approval Date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
+            """
+            t1 = threading.Thread(
+                target=send_email_notification,
+                args=(app_obj, store_manager_email, "Store Manager", 'Approved Requisition Awaiting Material Issue', sm_email_body, req)
+            )
+            t1.daemon = True
+            t1.start()
+
+            # Send Email to Employee
+            if req.requester_email:
+                emp_email_body = f"Your request {req.request_number} for {req.material_description} has been approved."
+                t2 = threading.Thread(
+                    target=send_email_notification,
+                    args=(app_obj, req.requester_email, req.requester_name, 'Requisition Approved', emp_email_body, req)
+                )
+                t2.daemon = True
+                t2.start()
+
+            # Notify Store Managers in-app
             store_managers = User.query.filter_by(role='store_manager', is_active=True).all()
             for sm in store_managers:
                 send_notification(

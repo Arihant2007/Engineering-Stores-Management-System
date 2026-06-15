@@ -11,7 +11,8 @@ from app.models import (
     InventorySnapshot, Material, Request, IssuedMaterial,
     AuditLog, Notification, User
 )
-from app.notifications import send_notification
+from app.notifications import send_notification, send_email_notification
+import threading
 
 store = Blueprint('store', __name__)
 
@@ -307,7 +308,7 @@ def issue_material(request_id):
     db.session.add(log)
     db.session.commit()
 
-    # Notify employee
+    # Notify employee in-app
     send_notification(
         user_id=req.user_id,
         request_id=req.id,
@@ -315,6 +316,26 @@ def issue_material(request_id):
         message=f'Your request {req.request_number} for {req.material_description} has been issued.',
         notification_type='issued'
     )
+    
+    # Send Email to Employee
+    if req.requester_email:
+        app_obj = current_app._get_current_object()
+        emp_email_body = f"""
+        Material has been issued for your requisition.
+        
+        Details:
+        - Request ID: {req.request_number}
+        - Material Name: {req.material_description}
+        - Quantity Issued: {req.quantity_required} {req.uom}
+        - Issue Date: {now.strftime('%Y-%m-%d %H:%M:%S')}
+        - Issued By: {current_user.full_name}
+        """
+        t = threading.Thread(
+            target=send_email_notification,
+            args=(app_obj, req.requester_email, req.requester_name, 'Material Issued Successfully', emp_email_body, req)
+        )
+        t.daemon = True
+        t.start()
 
     flash(f'Material issued successfully for request {req.request_number}.', 'success')
     return redirect(url_for('store.issuance_queue'))

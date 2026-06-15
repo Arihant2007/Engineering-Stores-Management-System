@@ -119,6 +119,7 @@ def create_request():
             snapshot_id=active_snapshot.id,
             material_id=material.id,
             requester_name=current_user.full_name,
+            requester_email=current_user.email,
             department=current_user.department or request.form.get('department', ''),
             material_code=material.material_code,
             material_description=material.material_description,
@@ -149,7 +150,32 @@ def create_request():
         log.entity_id = req.id
         db.session.commit()
 
-        # Notify Level 1 approvers
+        # Custom Email to Approver
+        approver_email = 'j.aaarihant@gmail.com'
+        app_obj = current_app._get_current_object()
+        
+        email_body = f"""
+        A new material requisition requires your approval.
+        
+        Details:
+        - Request ID: {req.request_number}
+        - Employee Name: {req.requester_name}
+        - Material Name: {req.material_description}
+        - Quantity: {req.quantity_required} {req.uom}
+        - Cost Center: {req.cost_center or 'N/A'}
+        - GL Code: {req.gl_code or 'N/A'}
+        - Request Amount: Rs. {req.amount:,.2f}
+        - Date & Time: {req.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+        """
+        
+        t = threading.Thread(
+            target=send_email_notification,
+            args=(app_obj, approver_email, "Approver", 'New Material Requisition Awaiting Approval', email_body, req)
+        )
+        t.daemon = True
+        t.start()
+
+        # Notify Level 1 approvers in-app
         l1_approvers = User.query.filter_by(role='approver_l1', is_active=True).all()
         for approver in l1_approvers:
             send_notification(
@@ -159,20 +185,6 @@ def create_request():
                 message=f'Request {req.request_number} from {current_user.full_name} requires your approval. Amount: Rs. {amount:,.2f}',
                 notification_type='request_created'
             )
-
-        # Notify Global Emails
-        global_emails_str = current_app.config.get('GLOBAL_NOTIFICATION_EMAILS', '')
-        if global_emails_str:
-            for email in global_emails_str.split(','):
-                email = email.strip()
-                if email:
-                    app_obj = current_app._get_current_object()
-                    t = threading.Thread(
-                        target=send_email_notification,
-                        args=(app_obj, email, "Administrator", 'New Requisition Created', f'Request {req.request_number} from {current_user.full_name} was submitted. Amount: Rs. {amount:,.2f}', req)
-                    )
-                    t.daemon = True
-                    t.start()
 
         flash(f'Requisition {req.request_number} submitted successfully.', 'success')
         return redirect(url_for('employee.view_request', request_id=req.id))

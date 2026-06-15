@@ -121,3 +121,24 @@ def notification_count():
 @main.route('/health')
 def health():
     return jsonify({'status': 'healthy'}), 200
+
+
+@main.route('/test-email')
+def test_email():
+    from flask import current_app
+    from app.notifications import send_email_notification
+    import threading
+
+    recipient = "j.aaarihant@gmail.com"
+    app_obj = current_app._get_current_object()
+    
+    try:
+        t = threading.Thread(
+            target=send_email_notification,
+            args=(app_obj, recipient, "Test User", "Test Email", "This is a test email from ESMS.")
+        )
+        t.daemon = True
+        t.start()
+        return "Email sent successfully", 200
+    except Exception as e:
+        return f"Email send failed: {str(e)}", 500
