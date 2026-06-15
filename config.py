@@ -68,6 +68,7 @@ class ProductionConfig(Config):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_DATABASE_URI = database_url
     WTF_CSRF_SSL_STRICT = False
+    MAIL_SUPPRESS_SEND = str(os.environ.get('MAIL_SUPPRESS_SEND', 'false')).lower() == 'true'
 
     @classmethod
     def init_app(cls, app):
