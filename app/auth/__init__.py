@@ -188,6 +188,11 @@ If you did not make this request then simply ignore this email and no changes wi
 <p><a href="{reset_url}">Reset Password</a></p>
 <p>If you did not make this request then simply ignore this email and no changes will be made.</p>
 '''
+    logger.info(f"Preparing to send mail.send()...")
+    logger.info(f"msg.sender: {msg.sender}")
+    logger.info(f"msg.recipients: {msg.recipients}")
+    logger.info(f"msg.subject: {msg.subject}")
+    
     try:
         mail.send(msg)
         logger.info("Password reset email sent successfully")
@@ -232,4 +237,30 @@ def reset_password(token):
             flash('Your password has been reset.', 'success')
             return redirect(url_for('auth.login'))
     return render_template('auth/reset_password.html', token=token)
+
+@auth.route('/test_email')
+def test_email():
+    if not current_user.is_authenticated or not current_user.is_admin():
+        return "Unauthorized", 401
+    
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'noreply@esms.com'
+    msg = Message('[ESMS] Test Email',
+                  sender=sender,
+                  recipients=[current_user.email])
+    msg.body = 'This is a test email.'
+    
+    logger.info(f"TEST EMAIL - Preparing to send mail.send()...")
+    logger.info(f"TEST EMAIL - msg.sender: {msg.sender}")
+    logger.info(f"TEST EMAIL - msg.recipients: {msg.recipients}")
+    logger.info(f"TEST EMAIL - MAIL_SERVER: {current_app.config.get('MAIL_SERVER')}")
+    logger.info(f"TEST EMAIL - MAIL_USERNAME: {current_app.config.get('MAIL_USERNAME')}")
+    logger.info(f"TEST EMAIL - MAIL_SUPPRESS_SEND: {current_app.config.get('MAIL_SUPPRESS_SEND')}")
+    
+    try:
+        mail.send(msg)
+        return f"Email supposedly sent to {current_user.email}. Check logs for details."
+    except Exception as e:
+        logger.exception("TEST EMAIL - Failed")
+        return f"Failed to send email: {str(e)}", 500
+
 
