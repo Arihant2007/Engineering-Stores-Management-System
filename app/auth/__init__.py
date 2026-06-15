@@ -283,3 +283,20 @@ def test_email():
     except Exception as e:
         logger.exception("TEST EMAIL - SMTP Exception caught during mail.send(msg)")
         return f"Failed to send email: {str(e)}", 500
+
+@auth.route('/smtp_test')
+def smtp_test():
+    if not current_user.is_authenticated or not current_user.is_admin():
+        return "Unauthorized", 401
+    import socket
+    import time
+    try:
+        start = time.time()
+        sock = socket.create_connection(("smtp.gmail.com", 587), timeout=10)
+        elapsed = time.time() - start
+        current_app.logger.info(f"SMTP CONNECT SUCCESS in {elapsed:.2f}s")
+        sock.close()
+        return "SMTP CONNECT SUCCESS"
+    except Exception as e:
+        current_app.logger.exception("SMTP CONNECT FAILED")
+        return str(e), 500
