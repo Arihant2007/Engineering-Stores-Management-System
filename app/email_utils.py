@@ -35,6 +35,16 @@ def send_email(to, subject, html_content, text_content=None):
     else:
         to_list = list(to)
 
+    # Diagnostic logging
+    if has_app_context():
+        logger.info(f"MAIL_SUPPRESS_SEND value: {current_app.config.get('MAIL_SUPPRESS_SEND')}")
+        logger.info(f"MAIL_SUPPRESS_SEND type: {type(current_app.config.get('MAIL_SUPPRESS_SEND'))}")
+    else:
+        logger.info("MAIL_SUPPRESS_SEND value: N/A (No app context)")
+        logger.info("MAIL_SUPPRESS_SEND type: N/A (No app context)")
+    logger.info(f"MAIL_SUPPRESS_SEND env: {os.environ.get('MAIL_SUPPRESS_SEND')}")
+    logger.info(f"FLASK_ENV: {os.environ.get('FLASK_ENV')}")
+
     if suppress:
         logger.info(f"[SUPPRESSED] Email to {to_list} with subject '{subject}' was not sent because MAIL_SUPPRESS_SEND is True.")
         return True
