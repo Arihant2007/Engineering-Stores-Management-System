@@ -5,6 +5,9 @@ from flask import current_app
 from flask_mail import Message
 from app import db, mail
 from app.models import User, AuditLog
+import logging
+
+logger = logging.getLogger(__name__)
 
 auth = Blueprint('auth', __name__)
 
@@ -169,6 +172,7 @@ def change_password():
     return render_template('auth/change_password.html')
 
 def send_password_reset_email(user):
+    logger.info(f"Sending password reset email to {user.email}...")
     token = user.get_reset_password_token()
     sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'noreply@esms.com'
     msg = Message('[ESMS] Reset Your Password',
@@ -184,7 +188,11 @@ If you did not make this request then simply ignore this email and no changes wi
 <p><a href="{reset_url}">Reset Password</a></p>
 <p>If you did not make this request then simply ignore this email and no changes will be made.</p>
 '''
-    mail.send(msg)
+    try:
+        mail.send(msg)
+        logger.info("Password reset email sent successfully")
+    except Exception as e:
+        logger.exception("Password reset email failed")
 
 @auth.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
@@ -192,9 +200,13 @@ def reset_password_request():
         return redirect(url_for('main.dashboard'))
     if request.method == 'POST':
         email = request.form.get('email')
+        logger.info(f"Received password reset request for email: {email}")
         user = User.query.filter_by(email=email).first()
         if user:
+            logger.info(f"User found for email {email}, proceeding to send email")
             send_password_reset_email(user)
+        else:
+            logger.info(f"No user found for email {email}, skipping email send")
         flash('Check your email for the instructions to reset your password', 'info')
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_password_request.html')
