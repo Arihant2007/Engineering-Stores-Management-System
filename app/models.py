@@ -19,6 +19,8 @@ class User(UserMixin, db.Model):
     department = db.Column(db.String(100))
     role = db.Column(db.String(50), nullable=False)  # admin, store_manager, employee, approver_l1
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
+    deactivated_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = db.Column(db.DateTime)

@@ -41,7 +41,7 @@ def users():
     search = request.args.get('search', '')
     role_filter = request.args.get('role', '')
 
-    query = User.query
+    query = User.query.filter_by(is_archived=False)
     if search:
         query = query.filter(
             db.or_(
@@ -168,9 +168,67 @@ def toggle_user(user_id):
         flash('You cannot deactivate your own account.', 'danger')
     else:
         user.is_active = not user.is_active
+        if not user.is_active:
+            user.deactivated_at = datetime.utcnow()
+        else:
+            user.deactivated_at = None
         db.session.commit()
         status = 'activated' if user.is_active else 'deactivated'
         flash(f'User {user.full_name} {status} successfully.', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@admin.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    if user.role == 'Administrator' or user.role == 'admin':
+        flash('Administrator accounts cannot be deleted.', 'danger')
+        return redirect(url_for('admin.users'))
+
+    # Check for historical activity
+    has_activity = False
+    if user.requests.first() or user.approvals.first() or user.issued_materials.first() or user.notifications.first() or AuditLog.query.filter_by(user_id=user.id).first():
+        has_activity = True
+
+    if has_activity:
+        flash('User cannot be deleted because historical records exist. Please deactivate the account instead.', 'danger')
+    else:
+        db.session.delete(user)
+        db.session.commit()
+        flash('User deleted successfully.', 'success')
+
+    return redirect(url_for('admin.users'))
+
+
+@admin.route('/maintenance/cleanup', methods=['POST'])
+@login_required
+@admin_required
+def run_maintenance():
+    from datetime import timedelta
+    cutoff_date = datetime.utcnow() - timedelta(days=25)
+    
+    # Find deactivated users older than 25 days who aren't already archived
+    users_to_archive = User.query.filter(
+        User.is_active == False,
+        User.is_archived == False,
+        User.deactivated_at != None,
+        User.deactivated_at < cutoff_date
+    ).all()
+
+    count = 0
+    for u in users_to_archive:
+        u.is_archived = True
+        count += 1
+
+    if count > 0:
+        db.session.commit()
+        flash(f'Maintenance complete. Archived {count} inactive user(s).', 'success')
+    else:
+        flash('Maintenance complete. No users required archiving.', 'info')
+
     return redirect(url_for('admin.users'))
 
 
