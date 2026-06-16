@@ -1,5 +1,6 @@
 import io
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from sqlalchemy.orm import joinedload
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_file, jsonify
 from flask_login import login_required, current_user
 from functools import wraps
@@ -44,15 +45,26 @@ def dashboard():
     stats = get_report_stats(report_date)
     recent_reports = ReportLog.query.order_by(ReportLog.created_at.desc()).limit(8).all()
 
+    start_dt = datetime.combine(report_date, datetime.min.time())
+    end_dt = start_dt + timedelta(days=1)
+
     # Issued items for display
-    issued_requests = Request.query.filter(
-        func.date(Request.created_at) == report_date,
+    issued_requests = Request.query.options(
+        joinedload(Request.requester),
+        joinedload(Request.material)
+    ).filter(
+        Request.created_at >= start_dt,
+        Request.created_at < end_dt,
         Request.status == 'Issued'
     ).order_by(Request.created_at.desc()).all()
 
     # All requests for the requests table (last 10)
-    all_requests = Request.query.filter(
-        func.date(Request.created_at) == report_date
+    all_requests = Request.query.options(
+        joinedload(Request.requester),
+        joinedload(Request.material)
+    ).filter(
+        Request.created_at >= start_dt,
+        Request.created_at < end_dt
     ).order_by(Request.created_at.desc()).limit(20).all()
 
     return render_template('reports/dashboard.html',
@@ -66,7 +78,9 @@ def dashboard():
 def get_report_stats(report_date=None):
     query = Request.query
     if report_date:
-        query = query.filter(func.date(Request.created_at) == report_date)
+        start_dt = datetime.combine(report_date, datetime.min.time())
+        end_dt = start_dt + timedelta(days=1)
+        query = query.filter(Request.created_at >= start_dt, Request.created_at < end_dt)
 
     all_requests = query.all()
     total = len(all_requests)
@@ -165,9 +179,15 @@ def generate_excel_report(report_date):
         bottom=Side(style='thin')
     )
 
-    # Fetch all data for the date
-    all_requests = Request.query.filter(
-        func.date(Request.created_at) == report_date
+    start_dt = datetime.combine(report_date, datetime.min.time())
+    end_dt = start_dt + timedelta(days=1)
+
+    # Fetch all data for the date with EAGER LOADING to prevent N+1 timeout
+    all_requests = Request.query.options(
+        joinedload(Request.issued_material).joinedload(IssuedMaterial.issued_by_user)
+    ).filter(
+        Request.created_at >= start_dt,
+        Request.created_at < end_dt
     ).all()
 
     # ──────────────────────────────────────────────
@@ -310,7 +330,7 @@ def generate_excel_report(report_date):
     issued = [r for r in all_requests if r.status == 'Issued']
     for i, req in enumerate(issued, 2):
         fill = PatternFill(start_color='F5F7FA', end_color='F5F7FA', fill_type='solid') if i % 2 == 0 else None
-        issuer = User.query.get(req.issued_material.issued_by) if req.issued_material else None
+        issuer = req.issued_material.issued_by_user if req.issued_material else None
         row_data = [
             req.request_number, req.requester_name, req.department,
             req.material_code, req.material_description, req.uom,
@@ -466,8 +486,12 @@ def generate_excel_report(report_date):
         cell.alignment = Alignment(horizontal='center')
         cell.border = thin_border
 
-    all_approvals = Approval.query.join(Request).filter(
-        func.date(Request.created_at) == report_date
+    all_approvals = Approval.query.options(
+        joinedload(Approval.request),
+        joinedload(Approval.approver)
+    ).join(Request).filter(
+        Request.created_at >= start_dt,
+        Request.created_at < end_dt
     ).order_by(Approval.actioned_at).all()
 
     for i, appr in enumerate(all_approvals, 2):
