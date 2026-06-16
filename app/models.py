@@ -37,7 +37,7 @@ class User(UserMixin, db.Model):
         'admin': 'Administrator',
         'store_manager': 'Store Manager',
         'employee': 'Employee',
-        'approver_l1': 'Approver Level 1',
+        'approver_l1': 'Approver',
     }
 
     def set_password(self, password):

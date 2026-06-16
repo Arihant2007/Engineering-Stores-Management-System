@@ -458,7 +458,7 @@ def generate_excel_report(report_date):
     # SHEET 11: Approval Audit Trail
     # ──────────────────────────────────────────────
     ws11 = wb.create_sheet('Approval Audit Trail')
-    audit_headers = ['Request No.', 'Approver', 'Level', 'Action', 'Remarks', 'Actioned At']
+    audit_headers = ['Request No.', 'Approver', 'Action', 'Remarks', 'Actioned At']
     for col, h in enumerate(audit_headers, 1):
         cell = ws11.cell(row=1, column=col, value=h)
         cell.fill = PatternFill(start_color='1B3A5C', end_color='1B3A5C', fill_type='solid')
@@ -475,7 +475,6 @@ def generate_excel_report(report_date):
         row_data = [
             appr.request.request_number if appr.request else '',
             appr.approver.full_name if appr.approver else '',
-            f'Level {appr.approval_level}',
             appr.action,
             appr.remarks or '',
             appr.actioned_at.strftime('%d-%b-%Y %H:%M') if appr.actioned_at else ''

@@ -23,7 +23,7 @@
   </div>
   <div class="table-responsive">
     <table class="table table-esms mb-0">
-      <thead><tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Qty</th><th>Amount</th><th>Level</th><th>Created</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Qty</th><th>Amount</th><th>Created</th><th>Actions</th></tr></thead>
       <tbody>
         {% for req in pagination.items %}
         <tr>
@@ -33,14 +33,13 @@
           <td title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description|length > 40 %}...{% endif %}</td>
           <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
           <td class="text-currency fw-600">{{ req.amount | currency }}</td>
-          <td><span class="badge bg-secondary">L{{ req.current_approval_level + 1 }}</span></td>
           <td class="text-muted">{{ req.created_at | datetime }}</td>
           <td>
             <a href="{{ url_for('approver.view_request', request_id=req.id) }}" class="btn btn-sm btn-primary">Review</a>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-center text-muted py-5">No pending requests.</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-5">No pending requests.</td></tr>
         {% endfor %}
       </tbody>
     </table>

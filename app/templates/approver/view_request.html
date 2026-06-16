@@ -96,7 +96,7 @@
           <div class="timeline-item">
             <div class="timeline-dot {{ approval.action.lower() }}"></div>
             <div class="timeline-content">
-              <div class="timeline-title">Level {{ approval.approval_level }}: {{ approval.action }}</div>
+              <div class="timeline-title">{{ approval.action }}</div>
               <div class="timeline-meta">{{ approval.actioned_at | datetime }}</div>
               <div class="timeline-meta">by {{ approval.approver.full_name }}</div>
               {% if approval.remarks %}<div class="timeline-meta mt-1"><em>"{{ approval.remarks }}"</em></div>{% endif %}
@@ -104,14 +104,7 @@
           </div>
           {% endfor %}
         </div>
-        <div class="mt-3 p-3 bg-light rounded small">
-          <strong>Approval Requirement:</strong>
-          {% if req.required_approval_levels == 2 %}
-          This request requires <strong>Level 1 + Level 2</strong> approval (Amount > Rs. 3,000)
-          {% else %}
-          This request requires <strong>Level 1</strong> approval only
-          {% endif %}
-        </div>
+
       </div>
     </div>
   </div>

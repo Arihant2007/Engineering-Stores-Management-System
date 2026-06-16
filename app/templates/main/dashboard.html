@@ -20,9 +20,11 @@
     <button class="v-btn-outline">
       Export <i class="fas fa-upload"></i>
     </button>
+    {% if not current_user.is_admin() %}
     <a href="{{ url_for('employee.create_request') }}" class="v-btn-primary" style="text-decoration:none;">
       <i class="fas fa-plus"></i> New Request
     </a>
+    {% endif %}
   </div>
 </div>
 
@@ -139,15 +141,8 @@
     <!-- Approval progress -->
     <div class="v-list-progress">
       <div class="v-prog-top">
-        <span><i class="fas fa-tasks"></i> Approval Progress</span>
-        <span>L{{ req.current_approval_level }}/L{{ req.required_approval_levels }}</span>
-      </div>
-      <div class="v-prog-bar">
-        {% set total_segs = 20 %}
-        {% set filled = ((req.current_approval_level / req.required_approval_levels) * total_segs)|int if req.required_approval_levels else 0 %}
-        {% for i in range(total_segs) %}
-        <div class="v-prog-seg {% if i < filled %}active{% endif %}"></div>
-        {% endfor %}
+        <span><i class="fas fa-tasks"></i> Approval Status</span>
+        <span style="color:{{ status_color }}">{{ req.status }}</span>
       </div>
     </div>
 

@@ -40,7 +40,7 @@
   <div class="analytics-card-header">Pending Approvals (Latest)</div>
   <div class="table-responsive">
     <table class="table table-esms mb-0">
-      <thead><tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Quantity</th><th>Amount</th><th>Approval Level</th><th>Created</th><th>Action</th></tr></thead>
+      <thead><tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Quantity</th><th>Amount</th><th>Created</th><th>Action</th></tr></thead>
       <tbody>
         {% for req in pending_requests %}
         <tr>
@@ -50,11 +50,6 @@
           <td title="{{ req.material_description }}">{{ req.material_description[:35] }}{% if req.material_description|length > 35 %}...{% endif %}</td>
           <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
           <td class="text-currency fw-600">{{ req.amount | currency }}</td>
-          <td>
-            <span class="badge {{ 'bg-primary' if req.required_approval_levels == 2 else 'bg-secondary' }}">
-              L{{ req.current_approval_level + 1 }} of {{ req.required_approval_levels }}
-            </span>
-          </td>
           <td class="text-muted">{{ req.created_at | datetime }}</td>
           <td><a href="{{ url_for('approver.view_request', request_id=req.id) }}" class="btn btn-sm btn-primary">Review</a></td>
         </tr>

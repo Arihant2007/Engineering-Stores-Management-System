@@ -17,11 +17,9 @@ employee = Blueprint('employee', __name__)
 def employee_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.is_store_manager() and not current_user.is_admin():
-            pass
-        if not current_user.is_authenticated:
-            return redirect(url_for('auth.login'))
-        # All logged in users can create requisitions except (approver-only restriction removed for simplicity)
+        if not current_user.is_authenticated or current_user.is_admin():
+            flash('Access denied. Administrator accounts cannot create requisitions.', 'danger')
+            return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -54,6 +52,7 @@ def determine_approval_levels(amount):
 
 @employee.route('/dashboard')
 @login_required
+@employee_required
 def dashboard():
     page = request.args.get('page', 1, type=int)
     my_requests = Request.query.filter_by(user_id=current_user.id).order_by(
@@ -72,6 +71,7 @@ def dashboard():
 
 @employee.route('/request/create', methods=['GET', 'POST'])
 @login_required
+@employee_required
 def create_request():
     active_snapshot = InventorySnapshot.query.filter_by(is_active=True).first()
 
@@ -211,6 +211,7 @@ def view_request(request_id):
 
 @employee.route('/requests')
 @login_required
+@employee_required
 def my_requests():
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', '')

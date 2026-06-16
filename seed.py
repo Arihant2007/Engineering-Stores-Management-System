@@ -84,14 +84,7 @@ def seed():
                 'role': 'approver_l1',
                 'password': 'Approver@123',
             },
-            {
-                'username': 'approver.l2',
-                'email': 'approver2@engineering.com',
-                'full_name': 'Dinesh Mehta',
-                'department': 'Management',
-                'role': 'approver_l2',
-                'password': 'Approver@123',
-            },
+
         ]
 
         created_count = 0
@@ -182,8 +175,7 @@ def seed():
         print("  Username: employee1      | Password: Emp@1234    | Role: Employee")
         print("  Username: employee2      | Password: Emp@1234    | Role: Employee")
         print("  Username: employee3      | Password: Emp@1234    | Role: Employee")
-        print("  Username: approver.l1   | Password: Approver@123 | Role: Approver L1")
-        print("  Username: approver.l2   | Password: Approver@123 | Role: Approver L2")
+        print("  Username: approver.l1    | Password: Approver@123 | Role: Approver")
 
 
 if __name__ == '__main__':

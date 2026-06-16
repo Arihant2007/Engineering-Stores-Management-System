@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from functools import wraps
 from datetime import datetime
+import secrets
 from app import db
 from app.models import User, AuditLog, ApprovalRule, Notification, Request
 
@@ -200,6 +201,43 @@ def delete_user(user_id):
         db.session.commit()
         flash('User deleted successfully.', 'success')
 
+    return redirect(url_for('admin.users'))
+
+
+@admin.route('/users/<int:user_id>/reset_password', methods=['POST'])
+@login_required
+@admin_required
+def reset_user_password(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    if user.id == current_user.id:
+        flash('You cannot reset your own password through this action. Please use the Change Password page.', 'danger')
+        return redirect(url_for('admin.users'))
+        
+    if not user.is_active:
+        flash(f'Cannot reset password for inactive user {user.full_name}.', 'warning')
+        return redirect(url_for('admin.users'))
+        
+    # Generate temporary password
+    temp_pw = f"TEMP-{secrets.token_hex(4).upper()}"
+    
+    # Update password
+    user.set_password(temp_pw)
+    
+    # Audit log
+    log = AuditLog(
+        user_id=current_user.id,
+        action='ADMIN_PASSWORD_RESET',
+        entity_type='User',
+        entity_id=user.id,
+        details=f'Password reset by admin for user {user.username} ({user.email})',
+        ip_address=request.remote_addr
+    )
+    db.session.add(log)
+    db.session.commit()
+    
+    # Display temp password to admin
+    flash(f'Password successfully reset for {user.full_name}. The temporary password is: {temp_pw}', 'success')
     return redirect(url_for('admin.users'))
 
 

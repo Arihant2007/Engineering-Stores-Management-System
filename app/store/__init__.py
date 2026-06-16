@@ -20,7 +20,7 @@ store = Blueprint('store', __name__)
 def store_manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not (current_user.is_store_manager() or current_user.is_admin()):
+        if not current_user.is_authenticated or not current_user.is_store_manager():
             flash('Access denied. Store Manager privileges required.', 'danger')
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
@@ -99,40 +99,73 @@ def upload_inventory():
 
 def process_inventory_file(filepath, filename):
     try:
-        # Read Excel
-        df = pd.read_excel(filepath, dtype=str)
+        # 1. Read without headers to detect the actual header row
+        df_raw = pd.read_excel(filepath, dtype=str, header=None)
+        
+        # Alias dictionaries
+        aliases = {
+            'material_code': ['material code', 'material', 'item code'],
+            'material_description': ['description', 'material description', 'item description'],
+            'available_stock': ['quantity', 'stock quantity', 'unrestricted', 'stock'],
+            'uom': ['unit', 'uom', 'bun', 'unit of measure'],
+            'unit_rate': ['rate', 'unit rate', 'price'],
+            'gl_code': ['gl code', 'gl_code'],
+            'cost_center': ['cost center', 'cost_center']
+        }
+
+        header_row_idx = -1
+        col_map = {}
+        detected_columns = []
+
+        # Scan first 20 rows
+        for i in range(min(20, len(df_raw))):
+            row_values = [str(x).strip().lower() for x in df_raw.iloc[i].fillna('')]
+            temp_map = {}
+            temp_detected = []
+            
+            for col_idx, cell_val in enumerate(row_values):
+                if not cell_val:
+                    continue
+                    
+                # Check against aliases
+                for db_field, alias_list in aliases.items():
+                    if any(alias in cell_val for alias in alias_list) and db_field not in temp_map:
+                        temp_map[db_field] = col_idx
+                        temp_detected.append(f"{cell_val} -> {db_field}")
+                        break
+            
+            # If we found at least Material Code and one other required field, we consider it the header
+            if 'material_code' in temp_map and ('material_description' in temp_map or 'available_stock' in temp_map):
+                header_row_idx = i
+                col_map = temp_map
+                detected_columns = temp_detected
+                break
+                
+        if header_row_idx == -1:
+            return {
+                'success': False, 
+                'error': f'Could not detect a valid header row. Ensure your file contains a Material Code column (aliases: {", ".join(aliases["material_code"])}).'
+            }
+
+        # Re-read with correct header
+        df = pd.read_excel(filepath, dtype=str, header=header_row_idx)
         df.columns = [str(col).strip() for col in df.columns]
 
-        # Column mapping (flexible)
-        col_map = {}
-        for col in df.columns:
-            col_lower = col.lower().replace(' ', '_')
-            if 'material_code' in col_lower or 'material code' in col.lower():
-                col_map['material_code'] = col
-            elif 'description' in col_lower:
-                col_map['material_description'] = col
-            elif 'uom' in col_lower or 'unit_of_measure' in col_lower:
-                col_map['uom'] = col
-            elif 'rate' in col_lower or 'unit_rate' in col_lower:
-                col_map['unit_rate'] = col
-            elif 'stock' in col_lower or 'available' in col_lower:
-                col_map['available_stock'] = col
-            elif 'gl_code' in col_lower or 'gl code' in col.lower():
-                col_map['gl_code'] = col
-            elif 'cost_center' in col_lower or 'cost center' in col.lower():
-                col_map['cost_center'] = col
+        # Build final col_name_map from index to name
+        final_col_map = {}
+        for db_field, col_idx in col_map.items():
+            if col_idx < len(df.columns):
+                final_col_map[df.columns[col_idx]] = db_field
+
+        # Rename columns to db fields
+        df = df.rename(columns=final_col_map)
+        
+        # Keep only mapped columns
+        df = df[list(final_col_map.values())]
 
         total_rows = len(df)
-        validation_issues = []
-
-        # Validate required columns
-        if 'material_code' not in col_map:
-            return {'success': False, 'error': 'Material Code column not found in file.'}
-        if 'material_description' not in col_map:
-            return {'success': False, 'error': 'Material Description column not found in file.'}
-
-        # Rename columns
-        df = df.rename(columns={v: k for k, v in col_map.items()})
+        validation_issues = [f"Header detected at row {header_row_idx + 1}"]
+        validation_issues.append(f"Mapped: {', '.join(detected_columns)}")
 
         # Drop empty rows
         df = df.dropna(subset=['material_code'])
@@ -140,17 +173,16 @@ def process_inventory_file(filepath, filename):
         df = df[df['material_code'] != '']
         df = df[df['material_code'] != 'nan']
 
-        # Check missing descriptions
-        missing_desc = df[df.get('material_description', pd.Series(dtype=str)).isna()].shape[0] if 'material_description' in df.columns else 0
-        if missing_desc > 0:
-            validation_issues.append(f'{missing_desc} rows with missing Material Description')
+        skipped_rows = total_rows - len(df)
+        if skipped_rows > 0:
+            validation_issues.append(f"{skipped_rows} rows skipped (blank material code)")
 
-        # Remove duplicates
+        # Remove duplicates within the file itself
         before_dedup = len(df)
         df = df.drop_duplicates(subset=['material_code'], keep='first')
         duplicate_count = before_dedup - len(df)
         if duplicate_count > 0:
-            validation_issues.append(f'{duplicate_count} duplicate Material Codes removed')
+            validation_issues.append(f"{duplicate_count} duplicate rows ignored in file")
 
         # Parse numeric columns
         def safe_numeric(val, default=0):
@@ -172,27 +204,55 @@ def process_inventory_file(filepath, filename):
             total_items=total_rows,
             duplicate_items=duplicate_count,
             valid_items=len(df),
-            validation_summary='; '.join(validation_issues) if validation_issues else 'No issues found'
+            validation_summary='; '.join(validation_issues)
         )
         db.session.add(snapshot)
         db.session.flush()
 
-        # Insert materials
+        # Fetch existing materials to update
+        existing_materials = {m.material_code: m for m in Material.query.filter(Material.material_code.in_(df['material_code'].tolist())).all()}
+        
         materials_to_insert = []
-        for _, row in df.iterrows():
-            mat = Material(
-                snapshot_id=snapshot.id,
-                material_code=str(row.get('material_code', '')).strip(),
-                material_description=str(row.get('material_description', '')).strip() if pd.notna(row.get('material_description')) else '',
-                uom=str(row.get('uom', '')).strip() if pd.notna(row.get('uom')) else '',
-                unit_rate=safe_numeric(row.get('unit_rate', 0)),
-                available_stock=safe_numeric(row.get('available_stock', 0)),
-                gl_code=str(row.get('gl_code', '')).strip() if pd.notna(row.get('gl_code')) else '',
-                cost_center=str(row.get('cost_center', '')).strip() if pd.notna(row.get('cost_center')) else '',
-            )
-            materials_to_insert.append(mat)
+        updated_count = 0
+        new_count = 0
 
-        db.session.bulk_save_objects(materials_to_insert)
+        for _, row in df.iterrows():
+            code = str(row.get('material_code', '')).strip()
+            desc = str(row.get('material_description', '')).strip() if pd.notna(row.get('material_description')) else ''
+            uom = str(row.get('uom', '')).strip() if pd.notna(row.get('uom')) else ''
+            rate = safe_numeric(row.get('unit_rate', 0))
+            stock = safe_numeric(row.get('available_stock', 0))
+            gl = str(row.get('gl_code', '')).strip() if pd.notna(row.get('gl_code')) else ''
+            cc = str(row.get('cost_center', '')).strip() if pd.notna(row.get('cost_center')) else ''
+
+            if code in existing_materials:
+                # Update existing
+                mat = existing_materials[code]
+                mat.snapshot_id = snapshot.id
+                if desc: mat.material_description = desc
+                if uom: mat.uom = uom
+                mat.unit_rate = rate
+                mat.available_stock = stock
+                if gl: mat.gl_code = gl
+                if cc: mat.cost_center = cc
+                updated_count += 1
+            else:
+                # Insert new
+                mat = Material(
+                    snapshot_id=snapshot.id,
+                    material_code=code,
+                    material_description=desc,
+                    uom=uom,
+                    unit_rate=rate,
+                    available_stock=stock,
+                    gl_code=gl,
+                    cost_center=cc
+                )
+                materials_to_insert.append(mat)
+                new_count += 1
+
+        if materials_to_insert:
+            db.session.bulk_save_objects(materials_to_insert)
 
         # Audit log
         log = AuditLog(
@@ -200,7 +260,7 @@ def process_inventory_file(filepath, filename):
             action='UPLOAD_INVENTORY',
             entity_type='InventorySnapshot',
             entity_id=snapshot.id,
-            details=f'Uploaded inventory: {filename}, {len(df)} valid items, {duplicate_count} duplicates removed',
+            details=f'Uploaded inventory: {filename}, {new_count} new items, {updated_count} updated items',
             ip_address=request.remote_addr
         )
         db.session.add(log)
@@ -210,7 +270,8 @@ def process_inventory_file(filepath, filename):
             'success': True,
             'valid_items': len(df),
             'duplicate_items': duplicate_count,
-            'snapshot_id': snapshot.id
+            'snapshot_id': snapshot.id,
+            'message': f"Imported successfully! {new_count} new items added, {updated_count} existing items updated."
         }
 
     except Exception as e:
