@@ -275,11 +275,13 @@ def process_inventory_file(filepath, filename):
         InventorySnapshot.query.update({'is_active': False})
         db.session.flush()
 
+        user_id = current_user.id
+
         # Create new snapshot
         snapshot = InventorySnapshot(
             snapshot_date=date.today(),
             filename=filename,
-            uploaded_by=current_user.id,
+            uploaded_by=user_id,
             is_active=True,
             total_items=total_rows,
             duplicate_items=duplicate_count,
@@ -358,7 +360,7 @@ def process_inventory_file(filepath, filename):
 
         # Audit log
         log = AuditLog(
-            user_id=current_user.id,
+            user_id=user_id,
             action='UPLOAD_INVENTORY',
             entity_type='InventorySnapshot',
             entity_id=snapshot_id,
