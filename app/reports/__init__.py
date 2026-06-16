@@ -522,9 +522,16 @@ from flask import Response
 import csv
 from datetime import timedelta
 
+from sqlalchemy.orm import joinedload
+
 def build_detailed_query(request_args):
     """Helper to build the base query from filters."""
-    query = Request.query.join(User, Request.user_id == User.id)
+    query = Request.query.options(
+        joinedload(Request.requester),
+        joinedload(Request.material),
+        joinedload(Request.issued_material).joinedload(IssuedMaterial.issued_by_user),
+        joinedload(Request.approvals).joinedload(Approval.approver)
+    ).join(User, Request.user_id == User.id)
     
     # 1. Date Filter (Default: Last 30 days)
     start_date_str = request_args.get('start_date')
@@ -590,11 +597,13 @@ def get_detailed_totals(base_query):
 def format_detailed_row(req):
     approver_name = '-'
     approval_date = '-'
-    # Get the latest approval
-    latest_approval = Approval.query.filter_by(request_id=req.id).order_by(Approval.actioned_at.desc()).first()
-    if latest_approval and latest_approval.approver:
-        approver_name = latest_approval.approver.full_name
-        approval_date = latest_approval.actioned_at.strftime('%Y-%m-%d %H:%M') if latest_approval.actioned_at else '-'
+    # Get the latest approval from the preloaded list
+    if req.approvals:
+        sorted_approvals = sorted(req.approvals, key=lambda a: a.actioned_at, reverse=True)
+        latest_approval = sorted_approvals[0]
+        if latest_approval.approver:
+            approver_name = latest_approval.approver.full_name
+            approval_date = latest_approval.actioned_at.strftime('%Y-%m-%d %H:%M') if latest_approval.actioned_at else '-'
         
     issuer_name = '-'
     issue_date = '-'

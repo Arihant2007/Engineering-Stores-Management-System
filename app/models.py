@@ -190,7 +190,7 @@ class Request(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    approvals = db.relationship('Approval', backref='request', lazy='dynamic', cascade='all, delete-orphan')
+    approvals = db.relationship('Approval', backref='request', cascade='all, delete-orphan')
     issued_material = db.relationship('IssuedMaterial', backref='request', uselist=False, cascade='all, delete-orphan')
     notifications = db.relationship('Notification', backref='request', lazy='dynamic', cascade='all, delete-orphan')
     snapshot = db.relationship('InventorySnapshot', foreign_keys=[snapshot_id])

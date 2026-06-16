@@ -91,7 +91,7 @@ def pending_requests():
 @approver_required
 def view_request(request_id):
     req = Request.query.get_or_404(request_id)
-    approvals = req.approvals.order_by('actioned_at').all()
+    approvals = sorted(req.approvals, key=lambda a: a.actioned_at)
     return render_template('approver/view_request.html', req=req, approvals=approvals)
 
 

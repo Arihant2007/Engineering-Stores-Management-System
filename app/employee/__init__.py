@@ -93,8 +93,9 @@ def create_request():
         errors = []
         if not material_id:
             errors.append('Please select a material.')
-        if not quantity_required or quantity_required <= 0:
-            errors.append('Quantity must be greater than zero.')
+        if quantity_required is None or quantity_required <= 0:
+            flash('Quantity must be greater than zero.', 'danger')
+            return redirect(url_for('employee.create_request'))
 
         material = None
         if material_id:
@@ -213,7 +214,7 @@ def view_request(request_id):
         flash('Access denied.', 'danger')
         return redirect(url_for('employee.dashboard'))
 
-    approvals = req.approvals.order_by('actioned_at').all()
+    approvals = sorted(req.approvals, key=lambda a: a.actioned_at)
     return render_template('employee/view_request.html', req=req, approvals=approvals)
 
 
