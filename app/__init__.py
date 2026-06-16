@@ -13,31 +13,12 @@ csrf = CSRFProtect()
 
 def create_app(config_name=None):
     import os
-    import logging
-    
-    # Configure basic logging for startup
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-    
-    flask_env_val = os.environ.get('FLASK_ENV')
-    logger.info(f"STARTUP - os.environ.get('FLASK_ENV'): {flask_env_val}")
-    logger.info(f"STARTUP - config_name passed into create_app: {config_name}")
     
     if config_name is None:
-        config_name = flask_env_val or 'default'
-        logger.info(f"STARTUP - config_name defaulted to: {config_name}")
+        config_name = os.environ.get('FLASK_ENV', 'default')
 
     app = Flask(__name__)
-    logger.info(f"STARTUP - config[config_name] class: {config[config_name]}")
-    
     app.config.from_object(config[config_name])
-    logger.info(f"STARTUP - app.config['MAIL_SUPPRESS_SEND'] immediately after from_object: {app.config.get('MAIL_SUPPRESS_SEND')}")
-    
-    logger.info(f"CONFIG NAME: {config_name}")
-    logger.info(f"CONFIG CLASS: {app.config.get('ENV')}")
-    logger.info(f"MAIL_SUPPRESS_SEND STARTUP: {app.config.get('MAIL_SUPPRESS_SEND')}")
-    print(config_name)
-
     config[config_name].init_app(app)
 
     # Initialize extensions

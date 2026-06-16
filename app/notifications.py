@@ -34,7 +34,7 @@ def send_notification(user_id, request_id, title, message, notification_type):
 
 
 def send_email_notification(app, recipient_email, recipient_name, title, message, req=None):
-    """Send email notification via Gmail SMTP."""
+    """Send email notification via Resend API."""
     with app.app_context():
         try:
             app.logger.info(f"Email send started to {recipient_email} with subject '{title}'")
