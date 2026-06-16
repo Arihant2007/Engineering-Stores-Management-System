@@ -114,9 +114,14 @@
 
     {% if current_user.is_store_manager() or current_user.is_admin() %}
     <a href="{{ url_for('reports.dashboard') }}"
-       class="sidebar-link {% if bp == 'reports' %}active{% endif %}">
+       class="sidebar-link {% if request.endpoint == 'reports.dashboard' %}active{% endif %}">
       <span class="sl-icon"><i class="fas fa-chart-bar"></i></span>
-      <span class="sl-text">Reports</span>
+      <span class="sl-text">Daily Report</span>
+    </a>
+    <a href="{{ url_for('reports.detailed_report') }}"
+       class="sidebar-link {% if request.endpoint == 'reports.detailed_report' %}active{% endif %}">
+      <span class="sl-icon"><i class="fas fa-table"></i></span>
+      <span class="sl-text">Detailed Report</span>
     </a>
     {% endif %}
 
