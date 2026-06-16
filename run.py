@@ -2,7 +2,7 @@ import os
 from app import create_app, db
 from app.models import User, ApprovalRule
 
-app = create_app(os.environ.get('FLASK_ENV', 'default'))
+app = create_app(os.environ.get('FLASK_ENV', 'production'))
 
 
 @app.shell_context_processor
