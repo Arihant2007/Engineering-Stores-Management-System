@@ -33,6 +33,11 @@ def create_app(config_name=None):
     app.config.from_object(config[config_name])
     logger.info(f"STARTUP - app.config['MAIL_SUPPRESS_SEND'] immediately after from_object: {app.config.get('MAIL_SUPPRESS_SEND')}")
     
+    logger.info(f"CONFIG NAME: {config_name}")
+    logger.info(f"CONFIG CLASS: {app.config.get('ENV')}")
+    logger.info(f"MAIL_SUPPRESS_SEND STARTUP: {app.config.get('MAIL_SUPPRESS_SEND')}")
+    print(config_name)
+
     config[config_name].init_app(app)
 
     # Initialize extensions
