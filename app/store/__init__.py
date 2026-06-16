@@ -13,6 +13,9 @@ from app.models import (
 )
 from app.notifications import send_notification, send_email_notification
 import threading
+import gc
+import sys
+import time as time_mod
 
 store = Blueprint('store', __name__)
 
@@ -99,8 +102,36 @@ def upload_inventory():
 
 def process_inventory_file(filepath, filename):
     try:
-        # 1. Read without headers to detect the actual header row
-        df_raw = pd.read_excel(filepath, dtype=str, header=None)
+        start_time = time_mod.time()
+        
+        # Memory helper
+        def get_mem_mb():
+            if sys.platform.startswith('linux'):
+                try:
+                    with open('/proc/self/status') as f:
+                        for line in f:
+                            if line.startswith('VmRSS:'):
+                                return float(line.split()[1]) / 1024
+                except Exception:
+                    pass
+            return 0.0
+
+        current_app.logger.info(f"--- Inventory Upload Started: {filename} ---")
+        current_app.logger.info(f"Memory Checkpoint (Start): {get_mem_mb():.2f} MB")
+
+        # Check file size limit (e.g. 15MB)
+        file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
+        current_app.logger.info(f"File Size: {file_size_mb:.2f} MB")
+        
+        if file_size_mb > 15:
+            current_app.logger.error(f"File size ({file_size_mb:.2f} MB) exceeds safe processing limit of 15 MB.")
+            return {
+                'success': False, 
+                'error': f'File size ({file_size_mb:.2f} MB) exceeds safe limit of 15 MB. Please reduce the file size or upload in chunks.'
+            }
+
+        # 1. Read ONLY FIRST 20 ROWS without headers to detect the actual header row
+        df_raw = pd.read_excel(filepath, dtype=str, header=None, nrows=20)
         
         # Alias dictionaries
         aliases = {
@@ -147,8 +178,23 @@ def process_inventory_file(filepath, filename):
                 'error': f'Could not detect a valid header row. Ensure your file contains a Material Code column (aliases: {", ".join(aliases["material_code"])}).'
             }
 
+        current_app.logger.info(f"Header row detected at index: {header_row_idx}")
+        current_app.logger.info(f"Memory Checkpoint (After Header Detection): {get_mem_mb():.2f} MB")
+
+        # Free memory of df_raw
+        del df_raw
+        gc.collect()
+
         # Re-read with correct header
         df = pd.read_excel(filepath, dtype=str, header=header_row_idx)
+        
+        # Drop fully empty rows and columns immediately
+        df = df.dropna(how='all')
+        df = df.dropna(axis=1, how='all')
+
+        current_app.logger.info(f"Rows loaded into DataFrame: {len(df)}")
+        current_app.logger.info(f"Memory Checkpoint (After DataFrame Load): {get_mem_mb():.2f} MB")
+
         df.columns = [str(col).strip() for col in df.columns]
 
         # Build final col_name_map from index to name
@@ -191,6 +237,8 @@ def process_inventory_file(filepath, filename):
             except (ValueError, TypeError):
                 return default
 
+        current_app.logger.info(f"Memory Checkpoint (Before Database Import): {get_mem_mb():.2f} MB")
+
         # Deactivate all previous snapshots
         InventorySnapshot.query.update({'is_active': False})
         db.session.flush()
@@ -209,68 +257,87 @@ def process_inventory_file(filepath, filename):
         db.session.add(snapshot)
         db.session.flush()
 
-        # Fetch existing materials to update
-        existing_materials = {m.material_code: m for m in Material.query.filter(Material.material_code.in_(df['material_code'].tolist())).all()}
-        
-        materials_to_insert = []
         updated_count = 0
         new_count = 0
+        batch_size = 500
+        materials_to_insert = []
+        
+        snapshot_id = snapshot.id
 
-        for _, row in df.iterrows():
-            code = str(row.get('material_code', '')).strip()
-            desc = str(row.get('material_description', '')).strip() if pd.notna(row.get('material_description')) else ''
-            uom = str(row.get('uom', '')).strip() if pd.notna(row.get('uom')) else ''
-            rate = safe_numeric(row.get('unit_rate', 0))
-            stock = safe_numeric(row.get('available_stock', 0))
-            gl = str(row.get('gl_code', '')).strip() if pd.notna(row.get('gl_code')) else ''
-            cc = str(row.get('cost_center', '')).strip() if pd.notna(row.get('cost_center')) else ''
+        for i in range(0, len(df), batch_size):
+            batch_df = df.iloc[i:i+batch_size]
+            codes = batch_df['material_code'].tolist()
+            
+            # Fetch existing materials for this batch
+            existing_materials = {m.material_code: m for m in Material.query.filter(Material.material_code.in_(codes)).all()}
 
-            if code in existing_materials:
-                # Update existing
-                mat = existing_materials[code]
-                mat.snapshot_id = snapshot.id
-                if desc: mat.material_description = desc
-                if uom: mat.uom = uom
-                mat.unit_rate = rate
-                mat.available_stock = stock
-                if gl: mat.gl_code = gl
-                if cc: mat.cost_center = cc
-                updated_count += 1
-            else:
-                # Insert new
-                mat = Material(
-                    snapshot_id=snapshot.id,
-                    material_code=code,
-                    material_description=desc,
-                    uom=uom,
-                    unit_rate=rate,
-                    available_stock=stock,
-                    gl_code=gl,
-                    cost_center=cc
-                )
-                materials_to_insert.append(mat)
-                new_count += 1
+            for _, row in batch_df.iterrows():
+                code = str(row.get('material_code', '')).strip()
+                desc = str(row.get('material_description', '')).strip() if pd.notna(row.get('material_description')) else ''
+                uom = str(row.get('uom', '')).strip() if pd.notna(row.get('uom')) else ''
+                rate = safe_numeric(row.get('unit_rate', 0))
+                stock = safe_numeric(row.get('available_stock', 0))
+                gl = str(row.get('gl_code', '')).strip() if pd.notna(row.get('gl_code')) else ''
+                cc = str(row.get('cost_center', '')).strip() if pd.notna(row.get('cost_center')) else ''
 
-        if materials_to_insert:
-            db.session.bulk_save_objects(materials_to_insert)
+                if code in existing_materials:
+                    # Update existing
+                    mat = existing_materials[code]
+                    mat.snapshot_id = snapshot_id
+                    if desc: mat.material_description = desc
+                    if uom: mat.uom = uom
+                    mat.unit_rate = rate
+                    mat.available_stock = stock
+                    if gl: mat.gl_code = gl
+                    if cc: mat.cost_center = cc
+                    updated_count += 1
+                else:
+                    # Insert new
+                    mat = Material(
+                        snapshot_id=snapshot_id,
+                        material_code=code,
+                        material_description=desc,
+                        uom=uom,
+                        unit_rate=rate,
+                        available_stock=stock,
+                        gl_code=gl,
+                        cost_center=cc
+                    )
+                    materials_to_insert.append(mat)
+                    new_count += 1
+
+            if materials_to_insert:
+                db.session.bulk_save_objects(materials_to_insert)
+                materials_to_insert = []
+                
+            db.session.flush()
+            db.session.commit()
+            db.session.expunge_all()
+            
+            current_app.logger.info(f"Processed batch {i} to {i+len(batch_df)}. Memory: {get_mem_mb():.2f} MB")
 
         # Audit log
         log = AuditLog(
             user_id=current_user.id,
             action='UPLOAD_INVENTORY',
             entity_type='InventorySnapshot',
-            entity_id=snapshot.id,
+            entity_id=snapshot_id,
             details=f'Uploaded inventory: {filename}, {new_count} new items, {updated_count} updated items',
             ip_address=request.remote_addr
         )
         db.session.add(log)
         db.session.commit()
 
+        duration = time_mod.time() - start_time
+        current_app.logger.info(f"Import duration: {duration:.2f} seconds")
+        current_app.logger.info(f"Memory Checkpoint (End): {get_mem_mb():.2f} MB")
+        current_app.logger.info(f"--- Inventory Upload Completed: {filename} ---")
+
         return {
             'success': True,
             'valid_items': len(df),
             'duplicate_items': duplicate_count,
-            'snapshot_id': snapshot.id,
+            'snapshot_id': snapshot_id,
             'message': f"Imported successfully! {new_count} new items added, {updated_count} existing items updated."
         }
 
