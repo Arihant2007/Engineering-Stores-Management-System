@@ -104,6 +104,12 @@ def create_request():
                 errors.append('Invalid material selected.')
             elif quantity_required and float(material.available_stock) > 0 and quantity_required > float(material.available_stock):
                 errors.append(f'Quantity exceeds available stock ({float(material.available_stock)} {material.uom}).')
+                
+            if material and quantity_required:
+                COUNT_BASED_UOM = ['NO', 'NOS', 'PCS', 'EA', 'UNIT']
+                if material.uom.upper() in COUNT_BASED_UOM:
+                    if not float(quantity_required).is_integer():
+                        errors.append(f'Decimal quantities are not allowed for {material.uom}. Please enter a whole number.')
 
 
         if errors:

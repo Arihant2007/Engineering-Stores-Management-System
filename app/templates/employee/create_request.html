@@ -88,6 +88,7 @@
             <div class="col-md-4">
               <label class="form-label fw-semibold">Quantity Required <span class="text-danger">*</span></label>
               <input type="number" class="form-control" id="quantityInput" name="quantity_required" step="0.001" min="0.001" required placeholder="Enter quantity">
+              <div class="invalid-feedback" id="qtyError"></div>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-semibold">Total Amount</label>
@@ -243,12 +244,32 @@ function updateAmount() {
   const amount = qty * currentRate;
   amountDisplay.textContent = 'Rs. ' + amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+  const countBasedUOMs = ['NO', 'NOS', 'PCS', 'EA', 'UNIT'];
+  const currentUom = (materialUom.value || '').toUpperCase();
+  const isCountBased = countBasedUOMs.includes(currentUom);
+  
+  quantityInput.step = isCountBased ? "1" : "0.001";
+  
+  let hasError = false;
+  let errMsg = '';
+
   if (qty > 0 && currentStock > 0 && qty > currentStock) {
+    hasError = true;
+    errMsg = 'Quantity exceeds available stock.';
+  } else if (qty > 0 && isCountBased && !Number.isInteger(qty)) {
+    hasError = true;
+    errMsg = `Decimal quantities are not allowed for ${currentUom}. Please enter a whole number.`;
+  }
+
+  const qtyErrorDiv = document.getElementById('qtyError');
+  if (hasError) {
     quantityInput.classList.add('is-invalid');
+    if (qtyErrorDiv) qtyErrorDiv.textContent = errMsg;
     submitBtn.disabled = true;
   } else {
     quantityInput.classList.remove('is-invalid');
-    submitBtn.disabled = !materialIdInput.value;
+    if (qtyErrorDiv) qtyErrorDiv.textContent = '';
+    submitBtn.disabled = !materialIdInput.value || qty <= 0;
   }
 
   // Update approval routing
@@ -259,6 +280,8 @@ function updateAmount() {
     } else {
       approvalInfo.innerHTML = '<div class="small"><strong>Routing:</strong> Level 1 + Level 2 Approval required</div><div class="small text-muted">Amount: Rs. ' + amount.toFixed(2) + '</div>';
     }
+  } else {
+    approvalInfo.innerHTML = '<div class="small text-muted">Select a material and enter quantity to see routing.</div>';
   }
 }
 </script>
