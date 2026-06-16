@@ -599,7 +599,7 @@ def format_detailed_row(req):
     issuer_name = '-'
     issue_date = '-'
     if req.issued_material:
-        issuer_name = req.issued_material.issuer.full_name if req.issued_material.issuer else '-'
+        issuer_name = req.issued_material.issued_by_user.full_name if req.issued_material.issued_by_user else '-'
         issue_date = req.issued_material.issued_date.strftime('%Y-%m-%d') if req.issued_material.issued_date else '-'
         
     req_value = (float(req.quantity_required or 0) * float(req.unit_rate or 0))
@@ -608,7 +608,7 @@ def format_detailed_row(req):
         'request_number': req.request_number,
         'request_date': req.created_at.strftime('%Y-%m-%d'),
         'employee_name': req.requester_name,
-        'employee_id': req.user.employee_id if req.user else '-',
+        'employee_id': req.requester.employee_id if req.requester else '-',
         'material_code': req.material_code,
         'material_description': req.material_description,
         'quantity_requested': float(req.quantity_required or 0),

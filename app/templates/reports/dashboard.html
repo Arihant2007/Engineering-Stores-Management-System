@@ -372,7 +372,7 @@
               <td class="col-dept" style="color:var(--on-light-muted);">{{ req.department or '-' }}</td>
               <td style="font-size:12px; color:var(--on-light-muted);">
                 {% if req.issued_material %}
-                  {{ req.issued_material.issuer.full_name if req.issued_material.issuer else '-' }}
+                  {{ req.issued_material.issued_by_user.full_name if req.issued_material.issued_by_user else '-' }}
                 {% else %}-{% endif %}
               </td>
             </tr>
