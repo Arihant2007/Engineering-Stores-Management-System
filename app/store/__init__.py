@@ -104,6 +104,28 @@ def process_inventory_file(filepath, filename):
     try:
         start_time = time_mod.time()
         
+        # Profiling variables
+        prof = {
+            't_read_excel': 0.0,
+            't_detect_header': 0.0,
+            't_clean_df': 0.0,
+            't_query_materials': 0.0,
+            't_insert_update': 0.0,
+            't_commit': 0.0,
+            'sql_queries': 0,
+            'commits': 0
+        }
+        
+        from sqlalchemy import event
+        
+        def count_queries(conn, cursor, statement, parameters, context, executemany):
+            prof['sql_queries'] += 1
+            
+        try:
+            event.listen(db.engine, 'before_cursor_execute', count_queries)
+        except Exception:
+            pass
+
         # Memory helper
         def get_mem_mb():
             if sys.platform.startswith('linux'):
@@ -131,7 +153,9 @@ def process_inventory_file(filepath, filename):
             }
 
         # 1. Read ONLY FIRST 20 ROWS without headers to detect the actual header row
+        t0 = time_mod.time()
         df_raw = pd.read_excel(filepath, dtype=str, header=None, nrows=20)
+        prof['t_read_excel'] += (time_mod.time() - t0)
         
         # Alias dictionaries
         aliases = {
@@ -149,6 +173,7 @@ def process_inventory_file(filepath, filename):
         detected_columns = []
 
         # Scan first 20 rows
+        t0 = time_mod.time()
         for i in range(min(20, len(df_raw))):
             row_values = [str(x).strip().lower() for x in df_raw.iloc[i].fillna('')]
             temp_map = {}
@@ -172,6 +197,8 @@ def process_inventory_file(filepath, filename):
                 detected_columns = temp_detected
                 break
                 
+        prof['t_detect_header'] += (time_mod.time() - t0)
+        
         if header_row_idx == -1:
             return {
                 'success': False, 
@@ -186,9 +213,12 @@ def process_inventory_file(filepath, filename):
         gc.collect()
 
         # Re-read with correct header
+        t0 = time_mod.time()
         df = pd.read_excel(filepath, dtype=str, header=header_row_idx)
+        prof['t_read_excel'] += (time_mod.time() - t0)
         
         # Drop fully empty rows and columns immediately
+        t0 = time_mod.time()
         df = df.dropna(how='all')
         df = df.dropna(axis=1, how='all')
 
@@ -229,6 +259,8 @@ def process_inventory_file(filepath, filename):
         duplicate_count = before_dedup - len(df)
         if duplicate_count > 0:
             validation_issues.append(f"{duplicate_count} duplicate rows ignored in file")
+            
+        prof['t_clean_df'] += (time_mod.time() - t0)
 
         # Parse numeric columns
         def safe_numeric(val, default=0):
@@ -269,8 +301,11 @@ def process_inventory_file(filepath, filename):
             codes = batch_df['material_code'].tolist()
             
             # Fetch existing materials for this batch
+            t0 = time_mod.time()
             existing_materials = {m.material_code: m for m in Material.query.filter(Material.material_code.in_(codes)).all()}
+            prof['t_query_materials'] += (time_mod.time() - t0)
 
+            t0 = time_mod.time()
             for _, row in batch_df.iterrows():
                 code = str(row.get('material_code', '')).strip()
                 desc = str(row.get('material_description', '')).strip() if pd.notna(row.get('material_description')) else ''
@@ -310,9 +345,14 @@ def process_inventory_file(filepath, filename):
                 db.session.bulk_save_objects(materials_to_insert)
                 materials_to_insert = []
                 
+            prof['t_insert_update'] += (time_mod.time() - t0)
+            
+            t0 = time_mod.time()
             db.session.flush()
             db.session.commit()
+            prof['commits'] += 1
             db.session.expunge_all()
+            prof['t_commit'] += (time_mod.time() - t0)
             
             current_app.logger.info(f"Processed batch {i} to {i+len(batch_df)}. Memory: {get_mem_mb():.2f} MB")
 
@@ -326,9 +366,30 @@ def process_inventory_file(filepath, filename):
             ip_address=request.remote_addr
         )
         db.session.add(log)
+        t0 = time_mod.time()
         db.session.commit()
+        prof['commits'] += 1
+        prof['t_commit'] += (time_mod.time() - t0)
 
         duration = time_mod.time() - start_time
+        
+        try:
+            event.remove(db.engine, 'before_cursor_execute', count_queries)
+        except Exception:
+            pass
+
+        current_app.logger.info(f"--- PROFILING REPORT ---")
+        current_app.logger.info(f"t_read_excel: {prof['t_read_excel']:.3f}s")
+        current_app.logger.info(f"t_detect_header: {prof['t_detect_header']:.3f}s")
+        current_app.logger.info(f"t_clean_df: {prof['t_clean_df']:.3f}s")
+        current_app.logger.info(f"t_query_materials: {prof['t_query_materials']:.3f}s")
+        current_app.logger.info(f"t_insert_update: {prof['t_insert_update']:.3f}s")
+        current_app.logger.info(f"t_commit: {prof['t_commit']:.3f}s")
+        current_app.logger.info(f"Total SQL queries: {prof['sql_queries']}")
+        current_app.logger.info(f"Total commits: {prof['commits']}")
+        current_app.logger.info(f"Items inserted: {new_count}, Items updated: {updated_count}")
+        current_app.logger.info(f"------------------------")
+
         current_app.logger.info(f"Import duration: {duration:.2f} seconds")
         current_app.logger.info(f"Memory Checkpoint (End): {get_mem_mb():.2f} MB")
         current_app.logger.info(f"--- Inventory Upload Completed: {filename} ---")
@@ -342,6 +403,10 @@ def process_inventory_file(filepath, filename):
         }
 
     except Exception as e:
+        try:
+            event.remove(db.engine, 'before_cursor_execute', count_queries)
+        except Exception:
+            pass
         db.session.rollback()
         return {'success': False, 'error': str(e)}
 
