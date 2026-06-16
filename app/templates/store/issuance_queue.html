@@ -53,26 +53,26 @@
                 <h5 class="modal-title">Issue Material - {{ req.request_number }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
-              <div class="modal-body">
-                <table class="table table-sm table-bordered mb-3">
-                  <tr><td class="fw-600">Material</td><td>{{ req.material_description }}</td></tr>
-                  <tr><td class="fw-600">Quantity</td><td>{{ req.quantity_required | float }} {{ req.uom }}</td></tr>
-                  <tr><td class="fw-600">Amount</td><td>{{ req.amount | currency }}</td></tr>
-                  <tr><td class="fw-600">Employee</td><td>{{ req.requester_name }}</td></tr>
-                  <tr><td class="fw-600">Department</td><td>{{ req.department }}</td></tr>
-                </table>
-                <form method="POST" action="{{ url_for('store.issue_material', request_id=req.id) }}" id="issueForm{{ req.id }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <form method="POST" action="{{ url_for('store.issue_material', request_id=req.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                  <table class="table table-sm table-bordered mb-3">
+                    <tr><td class="fw-600">Material</td><td>{{ req.material_description }}</td></tr>
+                    <tr><td class="fw-600">Quantity</td><td>{{ req.quantity_required | float }} {{ req.uom }}</td></tr>
+                    <tr><td class="fw-600">Amount</td><td>{{ req.amount | currency }}</td></tr>
+                    <tr><td class="fw-600">Employee</td><td>{{ req.requester_name }}</td></tr>
+                    <tr><td class="fw-600">Department</td><td>{{ req.department }}</td></tr>
+                  </table>
                   <div class="mb-3">
                     <label class="form-label fw-semibold">Remarks (Optional)</label>
                     <textarea class="form-control" name="remarks" rows="2" placeholder="Any issuance remarks..."></textarea>
                   </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="issueForm{{ req.id }}" class="btn btn-primary"><i class="bi bi-box-arrow-right me-1"></i> Confirm Issue</button>
-              </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-primary"><i class="bi bi-box-arrow-right me-1"></i> Confirm Issue</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
