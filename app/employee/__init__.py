@@ -9,7 +9,10 @@ from app.models import (
 )
 from app.notifications import send_notification, send_email_notification
 import threading
+import logging
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 employee = Blueprint('employee', __name__)
 
@@ -150,8 +153,12 @@ def create_request():
         log.entity_id = req.id
         db.session.commit()
 
-        # Custom Email to Approver
-        approver_email = 'j.aaarihant@gmail.com'
+        # Notify Level 1 approvers
+        l1_approvers = User.query.filter_by(role='approver_l1', is_active=True).all()
+        approver_emails = [a.email for a in l1_approvers if a.email and a.email.strip()]
+        
+        logger.info(f"Requisition {req.request_number} created. Notifying L1 approvers: {', '.join(approver_emails) if approver_emails else 'None'}")
+        
         app_obj = current_app._get_current_object()
         
         email_body = f"""
@@ -168,12 +175,13 @@ def create_request():
         - Date & Time: {req.created_at.strftime('%Y-%m-%d %H:%M:%S')}
         """
         
-        t = threading.Thread(
-            target=send_email_notification,
-            args=(app_obj, approver_email, "Approver", 'New Material Requisition Awaiting Approval', email_body, req)
-        )
-        t.daemon = True
-        t.start()
+        for email_addr in approver_emails:
+            t = threading.Thread(
+                target=send_email_notification,
+                args=(app_obj, email_addr, "Approver", 'New Material Requisition Awaiting Approval', email_body, req)
+            )
+            t.daemon = True
+            t.start()
 
         # Notify Level 1 approvers in-app
         l1_approvers = User.query.filter_by(role='approver_l1', is_active=True).all()

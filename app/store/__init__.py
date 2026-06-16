@@ -346,6 +346,19 @@ def issue_material(request_id):
         flash('Only approved requests can be issued.', 'danger')
         return redirect(url_for('store.issuance_queue'))
 
+    # 1 & 2. Stock Validation
+    material = req.material
+    if not material:
+        flash('The requested material could not be found in the system.', 'danger')
+        return redirect(url_for('store.issuance_queue'))
+        
+    if material.available_stock < req.quantity_required:
+        flash(f'Insufficient stock! Requested: {req.quantity_required} {req.uom}. Available: {material.available_stock} {req.uom}.', 'danger')
+        return redirect(url_for('store.issuance_queue'))
+
+    # 3. Stock Deduction
+    material.available_stock -= req.quantity_required
+
     now = datetime.utcnow()
     issued = IssuedMaterial(
         request_id=req.id,
@@ -355,17 +368,19 @@ def issue_material(request_id):
         remarks=request.form.get('remarks', '')
     )
     req.status = 'Issued'
-    db.session.add(issued)
-
+    
     # Audit log
     log = AuditLog(
         user_id=current_user.id,
         action='ISSUE_MATERIAL',
         entity_type='Request',
         entity_id=req.id,
-        details=f'Material issued for request {req.request_number}',
+        details=f'Material issued for request {req.request_number}. Deducted {req.quantity_required} {req.uom} from {material.material_code}.',
         ip_address=request.remote_addr
     )
+    
+    # 4. Commit all changes in a single transaction
+    db.session.add(issued)
     db.session.add(log)
     db.session.commit()
 

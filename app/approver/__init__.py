@@ -6,7 +6,10 @@ from app import db
 from app.models import Request, Approval, AuditLog, User, Notification
 from app.notifications import send_notification, send_email_notification
 import threading
+import logging
 from flask import current_app
+
+logger = logging.getLogger(__name__)
 
 approver = Blueprint('approver', __name__)
 
@@ -154,8 +157,12 @@ def action_request(request_id):
                 notification_type='approved'
             )
             
-            # Send Email to Store Manager
-            store_manager_email = 'aj0329280@gmail.com'
+            # Notify Store Managers via Email
+            store_managers = User.query.filter_by(role='store_manager', is_active=True).all()
+            sm_emails = [sm.email for sm in store_managers if sm.email and sm.email.strip()]
+            
+            logger.info(f"Requisition {req.request_number} approved. Notifying Store Managers: {', '.join(sm_emails) if sm_emails else 'None'}")
+            
             app_obj = current_app._get_current_object()
             sm_email_body = f"""
             An approved requisition is awaiting material issue.
@@ -167,12 +174,13 @@ def action_request(request_id):
             - Quantity: {req.quantity_required} {req.uom}
             - Approval Date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
             """
-            t1 = threading.Thread(
-                target=send_email_notification,
-                args=(app_obj, store_manager_email, "Store Manager", 'Approved Requisition Awaiting Material Issue', sm_email_body, req)
-            )
-            t1.daemon = True
-            t1.start()
+            for email_addr in sm_emails:
+                t1 = threading.Thread(
+                    target=send_email_notification,
+                    args=(app_obj, email_addr, "Store Manager", 'Approved Requisition Awaiting Material Issue', sm_email_body, req)
+                )
+                t1.daemon = True
+                t1.start()
 
             # Send Email to Employee
             if req.requester_email:
