@@ -73,20 +73,34 @@
           <td class="text-muted">{{ user.last_login | datetime if user.last_login else 'Never' }}</td>
           <td>
             <div class="d-flex gap-1">
-              <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-              <form method="POST" action="{{ url_for('admin.toggle_user', user_id=user.id) }}" class="d-inline">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if user.is_active else 'btn-outline-success' }}"
-                  data-confirm="{{ 'Deactivate' if user.is_active else 'Activate' }} user {{ user.full_name }}?">
-                  {{ 'Deactivate' if user.is_active else 'Activate' }}
+              <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">Edit</a>
+              
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  More
                 </button>
-              </form>
-              <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ user.id }}">
-                Reset PW
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}">
-                Delete
-              </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                  <li>
+                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ user.id }}">
+                      <i class="bi bi-key text-muted me-2"></i>Reset Password
+                    </button>
+                  </li>
+                  <li>
+                    <form method="POST" action="{{ url_for('admin.toggle_user', user_id=user.id) }}" class="d-inline w-100">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="dropdown-item" data-confirm="{{ 'Deactivate' if user.is_active else 'Activate' }} user {{ user.full_name }}?">
+                        <i class="bi bi-power text-muted me-2"></i>{{ 'Deactivate User' if user.is_active else 'Activate User' }}
+                      </button>
+                    </form>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}">
+                      <i class="bi bi-trash me-2"></i>Delete User
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
           </td>
         </tr>
