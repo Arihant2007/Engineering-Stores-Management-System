@@ -48,16 +48,26 @@ class User(UserMixin, db.Model):
 
     def get_reset_password_token(self):
         s = Serializer(current_app.config['SECRET_KEY'])
-        return s.dumps({'user_id': self.id})
+        # Include a slice of the password hash so token invalidates if password changes
+        pwd_hash = self.password_hash[-10:] if self.password_hash else ''
+        return s.dumps({'user_id': self.id, 'hash': pwd_hash})
 
     @staticmethod
     def verify_reset_password_token(token, expires_in=600):
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
-            user_id = s.loads(token, max_age=expires_in)['user_id']
+            data = s.loads(token, max_age=expires_in)
+            user_id = data.get('user_id')
+            token_hash = data.get('hash')
         except:
             return None
-        return User.query.get(user_id)
+            
+        user = User.query.get(user_id)
+        if user:
+            current_hash = user.password_hash[-10:] if user.password_hash else ''
+            if token_hash == current_hash:
+                return user
+        return None
 
     @property
     def role_display(self):
