@@ -42,7 +42,7 @@
   </div>
 
   <div class="table-responsive">
-    <table class="table table-esms mb-0" id="usersTable">
+    <table class="table table-esms mb-0 table-mobile-cards" id="usersTable">
       <thead>
         <tr>
           <th>Full Name</th>
@@ -58,20 +58,20 @@
       <tbody>
         {% for user in pagination.items %}
         <tr>
-          <td class="fw-600">{{ user.full_name }}</td>
-          <td><code>{{ user.username }}</code></td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.department or '-' }}</td>
-          <td><span class="badge bg-secondary">{{ user.role_display }}</span></td>
-          <td>
+          <td data-label="Full Name" class="fw-600">{{ user.full_name }}</td>
+          <td data-label="Username"><code>{{ user.username }}</code></td>
+          <td data-label="Email">{{ user.email }}</td>
+          <td data-label="Department">{{ user.department or '-' }}</td>
+          <td data-label="Role"><span class="badge bg-secondary">{{ user.role_display }}</span></td>
+          <td data-label="Status">
             {% if user.is_active %}
             <span class="status-badge status-approved">Active</span>
             {% else %}
             <span class="status-badge status-rejected">Inactive</span>
             {% endif %}
           </td>
-          <td class="text-muted">{{ user.last_login | datetime if user.last_login else 'Never' }}</td>
-          <td>
+          <td data-label="Last Login" class="text-muted">{{ user.last_login | datetime if user.last_login else 'Never' }}</td>
+          <td data-label="Actions">
             <div class="d-flex gap-1">
               <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">Edit</a>
               
@@ -126,7 +126,7 @@
 <!-- Delete Confirmation Modals -->
 {% for user in pagination.items %}
 <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1" aria-labelledby="deleteUserModalLabel{{ user.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content border-danger">
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title" id="deleteUserModalLabel{{ user.id }}">
@@ -155,7 +155,7 @@
 <!-- Reset Password Modals -->
 {% for user in pagination.items %}
 <div class="modal fade" id="resetPasswordModal{{ user.id }}" tabindex="-1" aria-labelledby="resetPasswordModalLabel{{ user.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content border-info">
       <div class="modal-header bg-info text-white">
         <h5 class="modal-title" id="resetPasswordModalLabel{{ user.id }}">

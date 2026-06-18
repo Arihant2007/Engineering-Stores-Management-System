@@ -268,7 +268,7 @@
   </div>
   
   <div class="table-responsive">
-    <table class="data-table">
+    <table class="data-table table-mobile-cards">
       <thead>
         <tr>
           <th>Request No</th>
@@ -290,21 +290,21 @@
       <tbody>
         {% for row in rows %}
         <tr>
-          <td><code class="col-code">{{ row.request_number }}</code></td>
-          <td>{{ row.request_date }}</td>
-          <td style="font-weight:600; color:var(--on-light);">{{ row.employee_name }}</td>
-          <td>{{ row.employee_id }}</td>
-          <td class="col-code">{{ row.material_code }}</td>
-          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;" title="{{ row.material_description }}">
+          <td data-label="Request No"><code class="col-code">{{ row.request_number }}</code></td>
+          <td data-label="Req Date">{{ row.request_date }}</td>
+          <td data-label="Employee" style="font-weight:600; color:var(--on-light);">{{ row.employee_name }}</td>
+          <td data-label="Emp ID">{{ row.employee_id }}</td>
+          <td data-label="Mat Code" class="col-code">{{ row.material_code }}</td>
+          <td data-label="Material" style="max-width:200px; overflow:hidden; text-overflow:ellipsis;" title="{{ row.material_description }}">
             {{ row.material_description }}
           </td>
-          <td style="font-weight:700;">{{ row.quantity_requested | float | int }} <span style="font-size:11px;font-weight:400;color:var(--on-light-muted);">{{ row.uom }}</span></td>
-          <td style="color:var(--accent-blue); font-weight:600;">{{ row.request_value | currency }}</td>
-          <td>
+          <td data-label="Qty" style="font-weight:700;">{{ row.quantity_requested | float | int }} <span style="font-size:11px;font-weight:400;color:var(--on-light-muted);">{{ row.uom }}</span></td>
+          <td data-label="Value" style="color:var(--accent-blue); font-weight:600;">{{ row.request_value | currency }}</td>
+          <td data-label="CC / GL Code">
             <div style="font-size:12px;">{{ row.cost_center }}</div>
             <div style="font-size:11px; color:var(--on-light-muted);">{{ row.gl_code }}</div>
           </td>
-          <td>
+          <td data-label="Status">
             {% if row.status == 'Issued' %}
               <span class="chip chip-issued">Issued</span>
             {% elif row.status == 'Approved' %}
@@ -315,10 +315,10 @@
               <span class="chip chip-pending">Pending</span>
             {% endif %}
           </td>
-          <td style="font-size:12px;">{{ row.approver_name }}</td>
-          <td style="font-size:12px;">{{ row.approval_date }}</td>
-          <td style="font-size:12px;">{{ row.issuer_name }}</td>
-          <td style="font-size:12px;">{{ row.issue_date }}</td>
+          <td data-label="Approver" style="font-size:12px;">{{ row.approver_name }}</td>
+          <td data-label="Apprv Date" style="font-size:12px;">{{ row.approval_date }}</td>
+          <td data-label="Store Mgr" style="font-size:12px;">{{ row.issuer_name }}</td>
+          <td data-label="Issue Date" style="font-size:12px;">{{ row.issue_date }}</td>
         </tr>
         {% else %}
         <tr>

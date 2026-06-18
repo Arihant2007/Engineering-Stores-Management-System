@@ -1037,6 +1037,111 @@ strong { color: var(--on-light); }
   .auth-right { width: 100%; }
 }
 
+/* ── RESPONSIVE / MOBILE FIXES ───────────────────────── */
+@media (max-width: 991.98px) {
+  /* Sidebar Off-canvas */
+  .sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-w) !important;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: none;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: var(--sh-sidebar);
+  }
+
+  /* Main Wrapper & Topbar Reset */
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+  .topbar {
+    left: 0 !important;
+    padding: 0 16px;
+  }
+
+  /* Show Mobile Hamburger */
+  .tb-mobile-btn {
+    display: flex !important;
+  }
+  .topbar-toggle {
+    display: none !important;
+  }
+
+  /* Sidebar Backdrop overlay styling */
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 250;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+  }
+  .sidebar-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Shrink Topbar Search */
+  .topbar-search {
+    width: auto;
+    padding: 6px 8px;
+    margin-right: auto;
+    border: none;
+    background: transparent;
+  }
+  .topbar-search input, .topbar-search .cmd-k {
+    display: none;
+  }
+  
+  /* Make search inputs stretch to 100% on phones */
+  .search-input-wrapper { min-width: 100%; }
+
+  /* Adjust Auth Form for phones */
+  .auth-form-wrapper { padding: 24px 16px; }
+  .auth-header-title { font-size: 32px; }
+
+  /* ── TABLE TO CARD CONVERSION ── */
+  .table-mobile-cards thead { display: none; }
+  .table-mobile-cards tbody tr {
+    display: block;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--r-md);
+    margin-bottom: 16px;
+    padding: 8px 0;
+  }
+  .table-mobile-cards tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px dashed var(--card-border) !important;
+    text-align: right;
+  }
+  .table-mobile-cards tbody td:last-child {
+    border-bottom: none !important;
+  }
+  /* Show column label */
+  .table-mobile-cards tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--on-light-muted);
+    letter-spacing: 0.5px;
+    margin-right: 16px;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .table-mobile-cards tbody td > * {
+    text-align: right;
+  }
+}
+
 @media print {
   .sidebar, .topbar, .page-header-actions { display: none !important; }
   .main-wrapper { margin: 0 !important; padding: 0 !important; }

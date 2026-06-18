@@ -22,23 +22,23 @@
     </form>
   </div>
   <div class="table-responsive">
-    <table class="table table-esms mb-0">
+    <table class="table table-esms mb-0 table-mobile-cards">
       <thead>
         <tr><th>Request No.</th><th>Employee</th><th>Department</th><th>Material</th><th>Qty</th><th>Amount</th><th>Cost Center</th><th>GL Code</th><th>Created</th><th>Action</th></tr>
       </thead>
       <tbody>
         {% for req in pagination.items %}
         <tr>
-          <td class="fw-600"><code>{{ req.request_number }}</code></td>
-          <td>{{ req.requester_name }}</td>
-          <td>{{ req.department }}</td>
-          <td title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description | length > 40 %}...{% endif %}</td>
-          <td>{{ req.quantity_required | float }} {{ req.uom }}</td>
-          <td class="text-currency fw-600">{{ req.amount | currency }}</td>
-          <td>{{ req.cost_center or '-' }}</td>
-          <td>{{ req.gl_code or '-' }}</td>
-          <td class="text-muted">{{ req.created_at | date }}</td>
-          <td>
+          <td data-label="Request No." class="fw-600"><code>{{ req.request_number }}</code></td>
+          <td data-label="Employee">{{ req.requester_name }}</td>
+          <td data-label="Department">{{ req.department }}</td>
+          <td data-label="Material" title="{{ req.material_description }}">{{ req.material_description[:40] }}{% if req.material_description | length > 40 %}...{% endif %}</td>
+          <td data-label="Qty">{{ req.quantity_required | float }} {{ req.uom }}</td>
+          <td data-label="Amount" class="text-currency fw-600">{{ req.amount | currency }}</td>
+          <td data-label="Cost Center">{{ req.cost_center or '-' }}</td>
+          <td data-label="GL Code">{{ req.gl_code or '-' }}</td>
+          <td data-label="Created" class="text-muted">{{ req.created_at | date }}</td>
+          <td data-label="Action">
             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#issueModal{{ req.id }}">
               Issue Material
             </button>
@@ -73,7 +73,7 @@
 <!-- Modals must be outside the table and table-responsive wrappers -->
 {% for req in pagination.items %}
 <div class="modal fade" id="issueModal{{ req.id }}" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Issue Material - {{ req.request_number }}</h5>

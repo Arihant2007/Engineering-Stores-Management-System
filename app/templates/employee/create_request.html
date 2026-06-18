@@ -112,11 +112,11 @@
             <textarea class="form-control" name="purpose" rows="3" placeholder="Describe the purpose of this material request..."></textarea>
           </div>
 
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+          <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
+            <button type="submit" class="btn btn-primary w-100 w-sm-auto" id="submitBtn" disabled>
               <i class="bi bi-send me-1"></i> Submit Requisition
             </button>
-            <a href="{{ url_for('employee.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            <a href="{{ url_for('employee.dashboard') }}" class="btn btn-outline-secondary w-100 w-sm-auto text-center">Cancel</a>
           </div>
         </form>
       </div>

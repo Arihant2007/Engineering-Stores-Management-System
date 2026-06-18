@@ -393,6 +393,7 @@
   // ── Sidebar link animation stagger ───────────────
   document.querySelectorAll('.sidebar-link').forEach(function(el, i) {
     el.style.animationDelay = (i * 0.03) + 's';
+    el.addEventListener('click', closeMobile);
   });
 
   // ── Notification badge polling ────────────────────
